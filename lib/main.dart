@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'proudy.dart';
 import 'mymemories.dart';
+import 'project.dart';
 
 void main() {
   runApp(const HackathonApp());
@@ -26,6 +27,12 @@ class MainScreen extends StatelessWidget {
   const MainScreen({super.key});
 
   void _handleTap(BuildContext context, String buttonName) {
+    if (buttonName == 'projects') {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => const ProjectsPage()),
+      );
+    }
     if (buttonName=="Add"){
       Navigator.push(
         context,
