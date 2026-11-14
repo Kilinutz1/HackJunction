@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'add.dart';
 import 'proudy.dart';
+import 'mymemories.dart';
 
 void main() {
   runApp(const HackathonApp());
@@ -30,15 +30,15 @@ class MainScreen extends StatelessWidget {
       Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (context) => TexttInput(),
+          builder: (context) => ProudyPage(),
         ),
       );
     }
-    if (buttonName=="projects"){
+    if (buttonName=="My Memories"){
       Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (context) => ProudyPage(),
+          builder: (context) => MyMemoriesPage(),
         ),
       );
     }
