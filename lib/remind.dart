@@ -1,3 +1,4 @@
+import 'app_theme.dart';
 import 'dart:io';
 import 'dart:math'; // NEW: Required for our randomizer logic
 import 'package:flutter/material.dart';
@@ -30,14 +31,16 @@ class _RewindListWidgetState extends State<RewindListWidget> {
   Future<void> _loadEvents() async {
     final db = LocalDatabase();
     final allEvents = await db.getAllEvents();
-    
+
     // 1. Separate all events into our two main categories
     final memoryEvents = allEvents.where((e) => e.type == 'Memory').toList();
-    final proudEvents = allEvents.where((e) => e.type == 'Proud Moment').toList();
+    final proudEvents = allEvents
+        .where((e) => e.type == 'Proud Moment')
+        .toList();
 
     // 2. Run our custom algorithm on both buckets
     final Map<String, List<Event>> finalGroups = {};
-    
+
     final finalMemories = _generateRandomBucket(memoryEvents);
     if (finalMemories.isNotEmpty) {
       finalGroups['Memory'] = finalMemories;
@@ -59,14 +62,18 @@ class _RewindListWidgetState extends State<RewindListWidget> {
     if (categoryEvents.isEmpty) return [];
 
     final random = Random();
-    
+
     // The specific random sizes you requested
     final sizeOptions = [1, 1, 1, 2, 2, 3, 4, 5];
     int targetSize = sizeOptions[random.nextInt(sizeOptions.length)];
 
     // Separate into liked and unliked buckets
-    List<Event> likedEvents = categoryEvents.where((e) => e.isFavorite).toList();
-    List<Event> unlikedEvents = categoryEvents.where((e) => !e.isFavorite).toList();
+    List<Event> likedEvents = categoryEvents
+        .where((e) => e.isFavorite)
+        .toList();
+    List<Event> unlikedEvents = categoryEvents
+        .where((e) => !e.isFavorite)
+        .toList();
 
     // Shuffle both pools so we get different pictures on every refresh
     likedEvents.shuffle(random);
@@ -86,7 +93,7 @@ class _RewindListWidgetState extends State<RewindListWidget> {
     int takenUnliked = min(targetSize - takenLiked, unlikedEvents.length);
     bucket.addAll(unlikedEvents.take(takenUnliked));
 
-    // 3. Fallback: If we didn't have enough unliked events to reach the target size, 
+    // 3. Fallback: If we didn't have enough unliked events to reach the target size,
     // fill the remaining slots with extra liked events (if we have any left)
     if (bucket.length < targetSize && likedEvents.length > takenLiked) {
       int extraNeeded = targetSize - bucket.length;
@@ -103,20 +110,27 @@ class _RewindListWidgetState extends State<RewindListWidget> {
   Widget build(BuildContext context) {
     if (_isLoading) {
       return const SizedBox(
-        height: 140,
-        child: Center(child: CircularProgressIndicator(color: Colors.purpleAccent)),
+        height: 132,
+        child: Center(
+          child: CircularProgressIndicator(color: AppPalette.forest),
+        ),
       );
     }
 
     if (_groupedEvents.isEmpty) {
       return const SizedBox(
-        height: 140,
-        child: Center(child: Text("Add some events to see your Rewind!", style: TextStyle(color: Colors.grey))),
+        height: 132,
+        child: Center(
+          child: Text(
+            "Add some events to see your Rewind!",
+            style: TextStyle(fontFamily: 'Roboto', color: Colors.grey),
+          ),
+        ),
       );
     }
 
     return SizedBox(
-      height: 140,
+      height: 132,
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 8.0),
@@ -124,7 +138,7 @@ class _RewindListWidgetState extends State<RewindListWidget> {
         itemBuilder: (context, index) {
           final type = _groupedEvents.keys.elementAt(index);
           final eventsList = _groupedEvents[type]!;
-          
+
           // Assign simulated music track
           final musicTrack = type == 'Proud Moment' ? 'funky.m4a' : 'lofty.m4a';
 
@@ -160,10 +174,11 @@ class SingleRewindWidget extends StatelessWidget {
   Widget build(BuildContext context) {
     // Try to find an event with a picture to use as the cover image
     final coverEvent = events.firstWhere(
-      (e) => e.pictureUrl != null && e.pictureUrl!.isNotEmpty, 
-      orElse: () => events.first
+      (e) => e.pictureUrl != null && e.pictureUrl!.isNotEmpty,
+      orElse: () => events.first,
     );
-    final hasPicture = coverEvent.pictureUrl != null && coverEvent.pictureUrl!.isNotEmpty;
+    final hasPicture =
+        coverEvent.pictureUrl != null && coverEvent.pictureUrl!.isNotEmpty;
 
     return GestureDetector(
       onTap: () {
@@ -180,18 +195,18 @@ class SingleRewindWidget extends StatelessWidget {
         );
       },
       child: Container(
-        width: 100,
+        width: 148,
         margin: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 8.0),
         clipBehavior: Clip.antiAlias,
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(16),
-          color: Colors.grey.shade800,
+          color: AppPalette.forest,
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.3),
+              color: Colors.transparent,
               blurRadius: 5,
               offset: const Offset(0, 3),
-            )
+            ),
           ],
         ),
         child: Stack(
@@ -201,14 +216,20 @@ class SingleRewindWidget extends StatelessWidget {
             if (hasPicture)
               kIsWeb
                   ? (coverEvent.pictureUrl!.startsWith('base64:')
-                      ? Image.memory(base64Decode(coverEvent.pictureUrl!.substring(7)), fit: BoxFit.cover)
-                      : Image.network(coverEvent.pictureUrl!, fit: BoxFit.cover))
+                        ? Image.memory(
+                            base64Decode(coverEvent.pictureUrl!.substring(7)),
+                            fit: BoxFit.cover,
+                          )
+                        : Image.network(
+                            coverEvent.pictureUrl!,
+                            fit: BoxFit.cover,
+                          ))
                   : Image.file(File(coverEvent.pictureUrl!), fit: BoxFit.cover)
             else
               Container(
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
-                    colors: [Colors.purpleAccent.shade700, Colors.deepPurple.shade900],
+                    colors: [AppPalette.forest, AppPalette.ink],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
@@ -226,6 +247,7 @@ class SingleRewindWidget extends StatelessWidget {
                   title,
                   textAlign: TextAlign.center,
                   style: const TextStyle(
+                    fontFamily: 'Roboto',
                     color: Colors.white,
                     fontWeight: FontWeight.bold,
                     fontSize: 14,
@@ -261,7 +283,7 @@ class StoryViewerScreen extends StatefulWidget {
 
 class _StoryViewerScreenState extends State<StoryViewerScreen> {
   int _currentIndex = 0;
-  
+
   // 1. Create the Audio Player
   final AudioPlayer _audioPlayer = AudioPlayer();
 
@@ -275,7 +297,7 @@ class _StoryViewerScreenState extends State<StoryViewerScreen> {
   Future<void> _startMusic() async {
     // Tell the player to loop the song seamlessly
     await _audioPlayer.setReleaseMode(ReleaseMode.loop);
-    
+
     // Play the specific track passed in from the RewindListWidget
     // Note: AssetSource automatically looks inside the 'assets' folder!
     await _audioPlayer.play(AssetSource(widget.musicTrack));
@@ -303,7 +325,9 @@ class _StoryViewerScreenState extends State<StoryViewerScreen> {
         if (_currentIndex < widget.events.length - 1) {
           _currentIndex++;
         } else {
-          Navigator.pop(context); // Closes story (which triggers dispose() and stops music)
+          Navigator.pop(
+            context,
+          ); // Closes story (which triggers dispose() and stops music)
         }
       });
     }
@@ -312,12 +336,13 @@ class _StoryViewerScreenState extends State<StoryViewerScreen> {
   @override
   Widget build(BuildContext context) {
     final currentEvent = widget.events[_currentIndex];
-    final hasPicture = currentEvent.pictureUrl != null && currentEvent.pictureUrl!.isNotEmpty;
+    final hasPicture =
+        currentEvent.pictureUrl != null && currentEvent.pictureUrl!.isNotEmpty;
 
     return Scaffold(
       backgroundColor: Colors.black,
       body: GestureDetector(
-        onTapUp: _onTap, 
+        onTapUp: _onTap,
         child: Stack(
           fit: StackFit.expand,
           children: [
@@ -330,14 +355,25 @@ class _StoryViewerScreenState extends State<StoryViewerScreen> {
                 height: double.infinity,
                 child: hasPicture
                     ? (kIsWeb
-                        ? (currentEvent.pictureUrl!.startsWith('base64:')
-                            ? Image.memory(base64Decode(currentEvent.pictureUrl!.substring(7)), fit: BoxFit.cover)
-                            : Image.network(currentEvent.pictureUrl!, fit: BoxFit.cover))
-                        : Image.file(File(currentEvent.pictureUrl!), fit: BoxFit.cover))
+                          ? (currentEvent.pictureUrl!.startsWith('base64:')
+                                ? Image.memory(
+                                    base64Decode(
+                                      currentEvent.pictureUrl!.substring(7),
+                                    ),
+                                    fit: BoxFit.cover,
+                                  )
+                                : Image.network(
+                                    currentEvent.pictureUrl!,
+                                    fit: BoxFit.cover,
+                                  ))
+                          : Image.file(
+                              File(currentEvent.pictureUrl!),
+                              fit: BoxFit.cover,
+                            ))
                     : Container(
                         decoration: BoxDecoration(
                           gradient: LinearGradient(
-                            colors: [Colors.teal.shade700, Colors.blueGrey.shade900],
+                            colors: [AppPalette.forest, AppPalette.ink],
                             begin: Alignment.topRight,
                             end: Alignment.bottomLeft,
                           ),
@@ -371,7 +407,9 @@ class _StoryViewerScreenState extends State<StoryViewerScreen> {
                       margin: const EdgeInsets.symmetric(horizontal: 2),
                       height: 4,
                       decoration: BoxDecoration(
-                        color: index <= _currentIndex ? Colors.white : Colors.white30,
+                        color: index <= _currentIndex
+                            ? Colors.white
+                            : Colors.white30,
                         borderRadius: BorderRadius.circular(2),
                       ),
                     ),
@@ -390,7 +428,12 @@ class _StoryViewerScreenState extends State<StoryViewerScreen> {
                 children: [
                   Text(
                     widget.title,
-                    style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+                    style: const TextStyle(
+                      fontFamily: 'Roboto',
+                      color: Colors.white,
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                   IconButton(
                     icon: const Icon(Icons.close, color: Colors.white),
@@ -414,16 +457,21 @@ class _StoryViewerScreenState extends State<StoryViewerScreen> {
                     Text(
                       currentEvent.description,
                       style: const TextStyle(
-                        color: Colors.white, 
-                        fontSize: 24, 
+                        fontFamily: 'Roboto',
+                        color: Colors.white,
+                        fontSize: 24,
                         fontWeight: FontWeight.bold,
-                        shadows: [Shadow(color: Colors.black, blurRadius: 10)]
+                        shadows: [Shadow(color: Colors.black, blurRadius: 10)],
                       ),
                     ),
                     const SizedBox(height: 8),
                     Text(
                       '${currentEvent.date.day}/${currentEvent.date.month}/${currentEvent.date.year}',
-                      style: TextStyle(color: Colors.white.withOpacity(0.8), fontSize: 16),
+                      style: TextStyle(
+                        fontFamily: 'Roboto',
+                        color: Colors.white.withOpacity(0.8),
+                        fontSize: 16,
+                      ),
                     ),
                   ],
                 ),

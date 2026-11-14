@@ -5,6 +5,7 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'localdb.dart';
+import 'app_theme.dart';
 import 'project_model.dart';
 
 export 'project_model.dart';
@@ -94,7 +95,12 @@ class _ProjectLogbookPageState extends State<_ProjectLogbookPage> {
                 .compareTo(widget.logbook.entries.indexOf(b));
     });
     return Scaffold(
-      appBar: AppBar(title: const Text('Logbook', style: TextStyle(fontWeight: FontWeight.bold))),
+      appBar: AppBar(
+        title: const Text(
+          'Logbook',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
+      ),
       body: SafeArea(
         child: ListView(
           padding: const EdgeInsets.all(16),
@@ -384,7 +390,13 @@ class _ProjectsPageState extends State<ProjectsPage>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Projects')),
+      appBar: AppBar(
+        centerTitle: true,
+        title: const Text(
+          'Projects',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
+      ),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : _loadFailed
@@ -451,7 +463,13 @@ class _AllProjectsPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('All projects')),
+      appBar: AppBar(
+        centerTitle: true,
+        title: const Text(
+          'All projects',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
+      ),
       body: SafeArea(
         child: Column(
           children: [
@@ -599,115 +617,142 @@ class _ProjectsListState extends State<_ProjectsList> {
                     itemBuilder: (context, index) {
                       final project = items[index];
                       return Card(
-                        margin: const EdgeInsets.only(bottom: 12),
+                        margin: const EdgeInsets.only(bottom: 16),
+                        elevation: 0,
+                        color: AppPalette.surface,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
                         clipBehavior: Clip.antiAlias,
-                        child: ListTile(
-                          contentPadding: const EdgeInsets.all(16),
-                          leading: project.images.isEmpty
-                              ? const Icon(Icons.folder_outlined)
-                              : ClipRRect(
-                                  borderRadius: BorderRadius.circular(8),
-                                  child: Image.memory(
-                                    project.images.first,
-                                    width: 48,
-                                    height: 48,
-                                    fit: BoxFit.cover,
-                                    errorBuilder: (_, error, stackTrace) =>
-                                        const Icon(Icons.broken_image_outlined),
-                                  ),
-                                ),
-                          title: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                project.name,
-                                maxLines: widget.preview ? 1 : null,
-                                overflow: widget.preview
-                                    ? TextOverflow.ellipsis
-                                    : null,
-                              ),
-                              if (project.isCompleted)
-                                Text(
-                                  'Completed',
-                                  style: TextStyle(
-                                    color: Theme.of(
-                                      context,
-                                    ).colorScheme.primary,
-                                  ),
-                                ),
-                            ],
-                          ),
-                          subtitle: Text(
-                            '${project.category ?? 'No category'} · '
-                            '${project.importance == null ? 'No priority' : 'Priority ${project.importance}/5'}\n'
-                            '${_periodLabel(project)}',
-                            maxLines: widget.preview ? 2 : null,
-                            overflow: widget.preview
-                                ? TextOverflow.ellipsis
-                                : null,
-                          ),
-                          isThreeLine: true,
-                          trailing: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              IconButton(
-                                tooltip: 'Logbook',
-                                icon: const Icon(Icons.menu_book_outlined),
-                                onPressed: () =>
-                                    Navigator.of(context).push<void>(
-                                      MaterialPageRoute(
-                                        builder: (_) => _ProjectLogbookPage(
-                                          projectName: project.name,
-                                          logbook: project.logbook,
-                                        ),
-                                      ),
-                                    ),
-                              ),
-                              IconButton(
-                                tooltip: 'Project overview',
-                                icon: const Icon(Icons.info_outline),
-                                onPressed: () =>
-                                    Navigator.of(context).push<void>(
-                                      MaterialPageRoute(
-                                        builder: (_) => _ProjectOverviewPage(
-                                          project: project,
-                                        ),
-                                      ),
-                                    ),
-                              ),
-                              PopupMenuButton<String>(
-                                tooltip: 'Project actions',
-                                onSelected: (action) async {
-                                  if (action == 'complete') {
-                                    widget.projects.update(
-                                      project.withCompleted(true),
-                                    );
-                                  } else if (action == 'delete') {
-                                    if (await _confirmDelete(
-                                          context,
-                                          project,
-                                        ) &&
-                                        mounted) {
-                                      widget.projects.remove(project);
-                                    }
-                                  }
-                                },
-                                itemBuilder: (_) => [
-                                  if (!project.isCompleted)
-                                    const PopupMenuItem(
-                                      value: 'complete',
-                                      child: Text('Mark as completed'),
-                                    ),
-                                  const PopupMenuItem(
-                                    value: 'delete',
-                                    child: Text('Delete project'),
-                                  ),
-                                ],
-                              ),
-                            ],
-                          ),
+                        child: InkWell(
                           onTap: () => widget.onProjectTap(project),
+                          child: Padding(
+                            padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    if (project.images.isNotEmpty) ...[
+                                      ClipRRect(
+                                        borderRadius: BorderRadius.circular(6),
+                                        child: Image.memory(
+                                          project.images.first,
+                                          width: 28,
+                                          height: 28,
+                                          fit: BoxFit.cover,
+                                          errorBuilder: (_, error, stack) =>
+                                              const Icon(Icons.image_outlined),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 8),
+                                    ],
+                                    Expanded(
+                                      child: Text(
+                                        project.name,
+                                        maxLines: widget.preview ? 1 : null,
+                                        overflow: widget.preview
+                                            ? TextOverflow.ellipsis
+                                            : null,
+                                        style: const TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                    ),
+                                    if (project.isCompleted)
+                                      const Padding(
+                                        padding: EdgeInsets.only(left: 8),
+                                        child: Text(
+                                          'Completed',
+                                          style: TextStyle(fontSize: 11),
+                                        ),
+                                      ),
+                                  ],
+                                ),
+                                const SizedBox(height: 8),
+                                Text(
+                                  '${project.category ?? 'No category'} · '
+                                  '${project.importance == null ? 'No priority' : 'Priority ${project.importance}/5'}\n'
+                                  '${_periodLabel(project)}',
+                                  style: Theme.of(context).textTheme.bodySmall,
+                                  maxLines: widget.preview ? 2 : null,
+                                  overflow: widget.preview
+                                      ? TextOverflow.ellipsis
+                                      : null,
+                                ),
+                                if (widget.preview)
+                                  const Spacer()
+                                else
+                                  const SizedBox(height: 4),
+                                Row(
+                                  mainAxisSize: MainAxisSize.max,
+                                  mainAxisAlignment: MainAxisAlignment.end,
+                                  children: [
+                                    IconButton(
+                                      tooltip: 'Logbook',
+                                      icon: const Icon(
+                                        Icons.menu_book_outlined,
+                                      ),
+                                      onPressed: () =>
+                                          Navigator.of(context).push<void>(
+                                            MaterialPageRoute(
+                                              builder: (_) =>
+                                                  _ProjectLogbookPage(
+                                                    projectName: project.name,
+                                                    logbook: project.logbook,
+                                                  ),
+                                            ),
+                                          ),
+                                    ),
+                                    IconButton(
+                                      tooltip: 'Project overview',
+                                      icon: const Icon(Icons.info_outline),
+                                      onPressed: () =>
+                                          Navigator.of(context).push<void>(
+                                            MaterialPageRoute(
+                                              builder: (_) =>
+                                                  _ProjectOverviewPage(
+                                                    project: project,
+                                                  ),
+                                            ),
+                                          ),
+                                    ),
+                                    PopupMenuButton<String>(
+                                      tooltip: 'Project actions',
+                                      onSelected: (action) async {
+                                        if (action == 'complete') {
+                                          widget.projects.update(
+                                            project.withCompleted(true),
+                                          );
+                                        } else if (action == 'delete') {
+                                          if (await _confirmDelete(
+                                                context,
+                                                project,
+                                              ) &&
+                                              mounted) {
+                                            widget.projects.remove(project);
+                                          }
+                                        }
+                                      },
+                                      itemBuilder: (_) => [
+                                        if (!project.isCompleted)
+                                          const PopupMenuItem(
+                                            value: 'complete',
+                                            child: Text('Mark as completed'),
+                                          ),
+                                        const PopupMenuItem(
+                                          value: 'delete',
+                                          child: Text('Delete project'),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
                         ),
                       );
                     },

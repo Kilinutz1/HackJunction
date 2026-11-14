@@ -1,14 +1,15 @@
-import 'dart:io'; 
+import 'app_theme.dart';
+import 'dart:io';
 import 'dart:convert'; // NEW: Required for Base64 encoding
 import 'package:flutter/material.dart';
-import 'package:image_picker/image_picker.dart'; 
+import 'package:image_picker/image_picker.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:path_provider/path_provider.dart'; // NEW: For permanent storage
 import 'localdb.dart';
 import 'event.dart';
 
 class ProudyPage extends StatefulWidget {
-  final Event? existingEvent; 
+  final Event? existingEvent;
 
   const ProudyPage({super.key, this.existingEvent});
 
@@ -17,13 +18,13 @@ class ProudyPage extends StatefulWidget {
 }
 
 class _ProudyPageState extends State<ProudyPage> {
-  bool _isFavorite = false; 
-  String _selectedType = 'Proud Moment'; 
-  DateTime _selectedDate = DateTime.now(); 
-  String? _selectedImagePath; 
-  
+  bool _isFavorite = false;
+  String _selectedType = 'Proud Moment';
+  DateTime _selectedDate = DateTime.now();
+  String? _selectedImagePath;
+
   final TextEditingController _textController = TextEditingController();
-  final List<String> _eventTypes = ['Proud Moment','Memory', 'Other'];
+  final List<String> _eventTypes = ['Proud Moment', 'Memory', 'Other'];
 
   @override
   void initState() {
@@ -33,7 +34,7 @@ class _ProudyPageState extends State<ProudyPage> {
       _selectedType = widget.existingEvent!.type;
       _selectedDate = widget.existingEvent!.date;
       _textController.text = widget.existingEvent!.description;
-      _selectedImagePath = widget.existingEvent!.pictureUrl; 
+      _selectedImagePath = widget.existingEvent!.pictureUrl;
     }
   }
 
@@ -41,8 +42,8 @@ class _ProudyPageState extends State<ProudyPage> {
     final DateTime? picked = await showDatePicker(
       context: context,
       initialDate: _selectedDate,
-      firstDate: DateTime(2000), 
-      lastDate: DateTime.now(), 
+      firstDate: DateTime(2000),
+      lastDate: DateTime.now(),
     );
     if (picked != null && picked != _selectedDate) {
       setState(() {
@@ -54,10 +55,10 @@ class _ProudyPageState extends State<ProudyPage> {
   Future<void> _pickImage() async {
     final picker = ImagePicker();
     final XFile? image = await picker.pickImage(source: ImageSource.gallery);
-    
+
     if (image != null) {
       setState(() {
-        _selectedImagePath = image.path; 
+        _selectedImagePath = image.path;
       });
     }
   }
@@ -102,7 +103,8 @@ class _ProudyPageState extends State<ProudyPage> {
     String? finalImagePath = _selectedImagePath;
 
     // If we picked a NEW image (or this is a brand new event), copy it to permanent storage
-    if (widget.existingEvent == null || widget.existingEvent!.pictureUrl != _selectedImagePath) {
+    if (widget.existingEvent == null ||
+        widget.existingEvent!.pictureUrl != _selectedImagePath) {
       finalImagePath = await _saveImageToPermanentStorage(_selectedImagePath);
     }
 
@@ -120,7 +122,7 @@ class _ProudyPageState extends State<ProudyPage> {
       await db.addEvent(newEvent);
     } else {
       final updatedEvent = Event(
-        id: widget.existingEvent!.id, 
+        id: widget.existingEvent!.id,
         type: _selectedType,
         description: _textController.text.trim(),
         date: _selectedDate,
@@ -131,7 +133,7 @@ class _ProudyPageState extends State<ProudyPage> {
     }
 
     if (mounted) {
-      Navigator.pop(context, true); 
+      Navigator.pop(context, true);
     }
   }
 
@@ -139,12 +141,12 @@ class _ProudyPageState extends State<ProudyPage> {
     if (widget.existingEvent != null) {
       final db = LocalDatabase();
       await db.deleteEvent(widget.existingEvent!.id);
-      
-      // Optional: You could also delete the physical file here using File(widget.existingEvent!.pictureUrl!).delete() 
+
+      // Optional: You could also delete the physical file here using File(widget.existingEvent!.pictureUrl!).delete()
       // to save storage space, but we'll keep it simple for now.
 
       if (mounted) {
-        Navigator.pop(context, true); 
+        Navigator.pop(context, true);
       }
     }
   }
@@ -165,7 +167,7 @@ class _ProudyPageState extends State<ProudyPage> {
         actions: [
           if (widget.existingEvent != null)
             IconButton(
-              icon: const Icon(Icons.delete_outline, color: Colors.redAccent),
+              icon: const Icon(Icons.delete_outline, color: AppPalette.clay),
               onPressed: () {
                 showDialog(
                   context: context,
@@ -174,15 +176,21 @@ class _ProudyPageState extends State<ProudyPage> {
                     content: const Text('This cannot be undone.'),
                     actions: [
                       TextButton(
-                        onPressed: () => Navigator.pop(context), 
-                        child: const Text('Cancel')
+                        onPressed: () => Navigator.pop(context),
+                        child: const Text('Cancel'),
                       ),
                       TextButton(
                         onPressed: () {
-                          Navigator.pop(context); 
-                          _deleteEvent(); 
-                        }, 
-                        child: const Text('Delete', style: TextStyle(color: Colors.redAccent)),
+                          Navigator.pop(context);
+                          _deleteEvent();
+                        },
+                        child: const Text(
+                          'Delete',
+                          style: TextStyle(
+                            fontFamily: 'Roboto',
+                            color: AppPalette.clay,
+                          ),
+                        ),
                       ),
                     ],
                   ),
@@ -199,51 +207,87 @@ class _ProudyPageState extends State<ProudyPage> {
               color: Theme.of(context).colorScheme.primaryContainer,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
-                side: BorderSide(
-                  color: Theme.of(context).colorScheme.primary,
-                ),
+                side: BorderSide(color: Theme.of(context).colorScheme.primary),
               ),
               clipBehavior: Clip.antiAlias,
               child: ExpansionTile(
                 leading: const Icon(Icons.lightbulb_outline),
                 title: const Text(
                   'Recommendations',
-                  style: TextStyle(fontWeight: FontWeight.bold),
+                  style: TextStyle(
+                    fontFamily: 'Roboto',
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
                 subtitle: const Text('Click to expand'),
                 children: _selectedType == 'Memory'
                     ? const [
-                        ListTile(title: Text('Did you meet some friends/family today?')),
-                        ListTile(title: Text('A nice trip/vacation you don\'t want to forget?')),
-                        ListTile(title: Text('Did you go to a nice event recently?')),
-                        ListTile(title: Text('Did some funny little thing happen today?')),
+                        ListTile(
+                          title: Text(
+                            'Did you meet some friends/family today?',
+                          ),
+                        ),
+                        ListTile(
+                          title: Text(
+                            'A nice trip/vacation you don\'t want to forget?',
+                          ),
+                        ),
+                        ListTile(
+                          title: Text('Did you go to a nice event recently?'),
+                        ),
+                        ListTile(
+                          title: Text(
+                            'Did some funny little thing happen today?',
+                          ),
+                        ),
                       ]
                     : const [
-                  ListTile(title: Text('Did you do any sports/outdoor activity?')),
-                  ListTile(title: Text('Were you able to help someone?')),
-                  ListTile(title: Text('Maybe you got a nice compliment?')),
-                  ListTile(title: Text('Did you achieve a goal or make progress towards one?')),
-                  ListTile(title: Text('Did you try something new?')),
-                ],
+                        ListTile(
+                          title: Text(
+                            'Did you do any sports/outdoor activity?',
+                          ),
+                        ),
+                        ListTile(title: Text('Were you able to help someone?')),
+                        ListTile(
+                          title: Text('Maybe you got a nice compliment?'),
+                        ),
+                        ListTile(
+                          title: Text(
+                            'Did you achieve a goal or make progress towards one?',
+                          ),
+                        ),
+                        ListTile(title: Text('Did you try something new?')),
+                      ],
               ),
             ),
-            const SizedBox(height: 5),
+            const SizedBox(height: 16),
 
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 0),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 0,
+                  ),
                   decoration: BoxDecoration(
-                    color: Colors.grey.shade800,
+                    color: AppPalette.sage,
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: DropdownButtonHideUnderline(
                     child: DropdownButton<String>(
                       value: _selectedType,
-                      dropdownColor: Colors.grey.shade800,
-                      icon: const Icon(Icons.keyboard_arrow_down, color: Colors.white, size: 18),
-                      style: const TextStyle(color: Colors.white, fontSize: 13),
+                      dropdownColor: AppPalette.sage,
+                      icon: const Icon(
+                        Icons.keyboard_arrow_down,
+                        color: AppPalette.ink,
+                        size: 18,
+                      ),
+                      style: const TextStyle(
+                        fontFamily: 'Roboto',
+                        color: AppPalette.ink,
+                        fontSize: 14,
+                      ),
                       items: _eventTypes.map((String type) {
                         return DropdownMenuItem<String>(
                           value: type,
@@ -260,11 +304,11 @@ class _ProudyPageState extends State<ProudyPage> {
                     ),
                   ),
                 ),
-                
+
                 IconButton(
                   icon: Icon(
                     _isFavorite ? Icons.favorite : Icons.favorite_border,
-                    color: _isFavorite ? Colors.redAccent : Colors.grey,
+                    color: _isFavorite ? AppPalette.clay : Colors.grey,
                     size: 24,
                   ),
                   onPressed: () {
@@ -275,9 +319,9 @@ class _ProudyPageState extends State<ProudyPage> {
                 ),
               ],
             ),
-            
-            const SizedBox(height: 5),
-            
+
+            const SizedBox(height: 16),
+
             TextField(
               controller: _textController,
               minLines: 5,
@@ -290,7 +334,7 @@ class _ProudyPageState extends State<ProudyPage> {
                 filled: true,
               ),
             ),
-            
+
             const SizedBox(height: 15),
 
             if (_selectedImagePath != null)
@@ -302,11 +346,22 @@ class _ProudyPageState extends State<ProudyPage> {
                       constraints: const BoxConstraints(maxHeight: 200),
                       child: ClipRRect(
                         borderRadius: BorderRadius.circular(12),
-                        child: kIsWeb 
+                        child: kIsWeb
                             ? (_selectedImagePath!.startsWith('base64:')
-                                ? Image.memory(base64Decode(_selectedImagePath!.substring(7)), fit: BoxFit.contain)
-                                : Image.network(_selectedImagePath!, fit: BoxFit.contain))
-                            : Image.file(File(_selectedImagePath!), fit: BoxFit.contain),
+                                  ? Image.memory(
+                                      base64Decode(
+                                        _selectedImagePath!.substring(7),
+                                      ),
+                                      fit: BoxFit.contain,
+                                    )
+                                  : Image.network(
+                                      _selectedImagePath!,
+                                      fit: BoxFit.contain,
+                                    ))
+                            : Image.file(
+                                File(_selectedImagePath!),
+                                fit: BoxFit.contain,
+                              ),
                       ),
                     ),
                   ),
@@ -317,31 +372,47 @@ class _ProudyPageState extends State<ProudyPage> {
                         _selectedImagePath = null;
                       });
                     },
-                  )
+                  ),
                 ],
               ),
-            
+
             if (_selectedImagePath != null) const SizedBox(height: 15),
-            
+
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 ElevatedButton.icon(
                   style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 12,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                   ),
-                  icon: Icon(_selectedImagePath == null ? Icons.add_photo_alternate_outlined : Icons.photo_library),
-                  label: Text(_selectedImagePath == null ? 'Picture' : 'Change Pic'),
-                  onPressed: _pickImage, 
+                  icon: Icon(
+                    _selectedImagePath == null
+                        ? Icons.add_photo_alternate_outlined
+                        : Icons.photo_library,
+                  ),
+                  label: Text(
+                    _selectedImagePath == null ? 'Picture' : 'Change Pic',
+                  ),
+                  onPressed: _pickImage,
                 ),
-                
+
                 TextButton.icon(
                   style: TextButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 12,
+                    ),
                   ),
                   icon: const Icon(Icons.calendar_today_outlined),
-                  label: Text('${_selectedDate.day}/${_selectedDate.month}/${_selectedDate.year}'),
+                  label: Text(
+                    '${_selectedDate.day}/${_selectedDate.month}/${_selectedDate.year}',
+                  ),
                   onPressed: _pickDate,
                 ),
               ],
@@ -351,7 +422,7 @@ class _ProudyPageState extends State<ProudyPage> {
             SizedBox(
               child: ElevatedButton(
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.greenAccent.shade700,
+                  backgroundColor: AppPalette.forest,
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   shape: RoundedRectangleBorder(
@@ -361,7 +432,11 @@ class _ProudyPageState extends State<ProudyPage> {
                 onPressed: _saveEvent,
                 child: Text(
                   widget.existingEvent == null ? 'Save Event' : 'Update Event',
-                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  style: const TextStyle(
+                    fontFamily: 'Roboto',
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
             ),
