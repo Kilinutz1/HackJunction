@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'breath.dart';
+import 'breathing_music.dart';
 import 'streak.dart';
 
 class BreathingSetupPage extends StatefulWidget {
@@ -11,7 +12,49 @@ class BreathingSetupPage extends StatefulWidget {
 class _BreathingSetupPageState extends State<BreathingSetupPage> {
   int _minutes = 1;
   int _seconds = 0;
-  bool _withMusic = false;
+  BreathingMusic? _music;
+
+  void _chooseMusic() {
+    showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      isScrollControlled: true,
+      builder: (sheetContext) => SafeArea(
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Padding(
+                padding: const EdgeInsets.all(16),
+                child: Text(
+                  'Choose music',
+                  style: Theme.of(context).textTheme.titleLarge,
+                ),
+              ),
+              for (final track in <BreathingMusic?>[
+                null,
+                ...BreathingMusic.values,
+              ])
+                ListTile(
+                  title: Text(track?.label ?? 'No music'),
+                  leading: Icon(
+                    _music == track
+                        ? Icons.radio_button_checked
+                        : Icons.radio_button_off,
+                  ),
+                  selected: _music == track,
+                  onTap: () {
+                    setState(() => _music = track);
+                    Navigator.of(sheetContext).pop();
+                  },
+                ),
+              const SizedBox(height: 16),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) => Scaffold(
@@ -81,12 +124,13 @@ class _BreathingSetupPageState extends State<BreathingSetupPage> {
           const SizedBox(height: 12),
           const Text('10 seconds to 30 minutes'),
           const SizedBox(height: 24),
-          SwitchListTile.adaptive(
+          ListTile(
             contentPadding: EdgeInsets.zero,
             title: const Text('Music'),
-            subtitle: const Text('Play calming music during your exercise'),
-            value: _withMusic,
-            onChanged: (value) => setState(() => _withMusic = value),
+            subtitle: Text(_music?.label ?? 'No music'),
+            leading: const Icon(Icons.music_note_outlined),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: _chooseMusic,
           ),
           const SizedBox(height: 32),
           FilledButton.icon(
@@ -97,7 +141,8 @@ class _BreathingSetupPageState extends State<BreathingSetupPage> {
                 builder: (sessionContext) => BreatheScreen(
                   durationInSeconds: _minutes * 60 + _seconds,
                   timedSession: true,
-                  withMusic: _withMusic,
+                  withMusic: _music != null,
+                  music: _music ?? BreathingMusic.lofty,
                   onComplete: () async {
                     Navigator.of(sessionContext).pop();
                     try {

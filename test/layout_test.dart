@@ -10,6 +10,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:my_proud_space/main.dart';
+import 'package:my_proud_space/weekly_report.dart';
 import 'package:my_proud_space/app_theme.dart';
 import 'package:my_proud_space/proudy.dart';
 import 'package:my_proud_space/mymemories.dart';
@@ -135,6 +136,8 @@ void main() {
     await photo('add-memory');
     await page(const MyMemoriesPage());
     await photo('memories');
+    await page(const WeeklyReportPage());
+    await photo('weekly-report');
     await page(const ProjectsPage());
     await photo('projects');
     await tester.tap(find.byTooltip('Project actions'));

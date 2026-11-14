@@ -5,6 +5,8 @@ import 'proudy.dart';
 import 'mymemories.dart';
 import 'project.dart';
 import 'remind.dart';
+import 'weekly_report.dart';
+import 'weekly_report_data.dart';
 import 'streak.dart';
 import 'breath.dart';
 import 'breathing_setup.dart';
@@ -24,12 +26,39 @@ class HackathonApp extends StatefulWidget {
 }
 
 class _HackathonAppState extends State<HackathonApp> {
-  final reminder = StreakReminder();
+  final _navigatorKey = GlobalKey<NavigatorState>();
+  late final reminder = StreakReminder(onWeeklyReport: _openWeeklyReport);
+  late Future<void> _notificationStartup;
+  Future<void>? _reportRoute;
+
+  void _openWeeklyReport() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || _reportRoute != null) return;
+      final start = reportWeekStart(DateTime.now());
+      _reportRoute = _navigatorKey.currentState!.push<void>(
+        MaterialPageRoute(
+          builder: (_) => WeeklyReportPage(
+            initialWeek: DateTime(start.year, start.month, start.day - 7),
+          ),
+        ),
+      );
+      _reportRoute!.whenComplete(() => _reportRoute = null);
+    });
+    WidgetsBinding.instance.ensureVisualUpdate();
+  }
+
+  Future<void> _waitForNotification() async {
+    await _notificationStartup;
+    // Let a cold-start notification route open before the daily exercise.
+    await WidgetsBinding.instance.endOfFrame;
+    await _reportRoute;
+  }
+
   @override
   void initState() {
     super.initState();
     Appearance.load();
-    reminder.start();
+    _notificationStartup = reminder.start();
   }
 
   @override
@@ -42,6 +71,7 @@ class _HackathonAppState extends State<HackathonApp> {
   Widget build(BuildContext context) => ValueListenableBuilder<Color>(
     valueListenable: Appearance.accent,
     builder: (context, accent, _) => MaterialApp(
+      navigatorKey: _navigatorKey,
       title: 'Hackathon App',
       debugShowCheckedModeBanner: false,
       theme: buildAppTheme(accent: accent),
@@ -54,13 +84,14 @@ class _HackathonAppState extends State<HackathonApp> {
           ),
         ),
       ),
-      home: const MainScreen(),
+      home: MainScreen(beforeDailyExercise: _waitForNotification),
     ),
   );
 }
 
 class MainScreen extends StatefulWidget {
-  const MainScreen({super.key});
+  const MainScreen({super.key, this.beforeDailyExercise});
+  final Future<void> Function()? beforeDailyExercise;
 
   @override
   State<MainScreen> createState() => _MainScreenState();
@@ -91,6 +122,8 @@ class _MainScreenState extends State<MainScreen> {
   }
 
   Future<void> _checkDailyVisit() async {
+    await widget.beforeDailyExercise?.call();
+    if (!mounted) return;
     final prefs = await SharedPreferences.getInstance();
     final now = DateTime.now();
     final todayStr = StreakService.dayKey(now);
@@ -196,6 +229,21 @@ class _MainScreenState extends State<MainScreen> {
               ),
               const SizedBox(height: 8),
               RewindListWidget(key: _rewindKey),
+              const SizedBox(height: 16),
+              Card(
+                child: ListTile(
+                  leading: Icon(
+                    Icons.auto_stories_outlined,
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
+                  title: const Text('Your week, remembered'),
+                  subtitle: const Text('A few good things to take with you'),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () => Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => const WeeklyReportPage()),
+                  ),
+                ),
+              ),
               const SizedBox(height: 24),
               KahootButton(
                 color: Theme.of(context).colorScheme.primary,

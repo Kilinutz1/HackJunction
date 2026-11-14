@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'breathing_music.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/material.dart';
 
@@ -6,6 +7,7 @@ class BreatheScreen extends StatefulWidget {
   final VoidCallback onComplete; // Triggered when the user is done
   final bool timedSession;
   final bool withMusic;
+  final BreathingMusic music;
   final int durationInSeconds; // Time required before they can continue
 
   const BreatheScreen({
@@ -14,6 +16,7 @@ class BreatheScreen extends StatefulWidget {
     this.durationInSeconds = 0,
     this.timedSession = false,
     this.withMusic = false,
+    this.music = BreathingMusic.lofty,
   });
 
   @override
@@ -34,7 +37,7 @@ class _BreatheScreenState extends State<BreatheScreen>
     try {
       await player.setReleaseMode(ReleaseMode.loop);
       if (_musicStopped || !mounted) return;
-      await player.play(AssetSource('lofty.m4a'));
+      await player.play(AssetSource(widget.music.asset));
     } catch (error) {
       debugPrint('Could not play breathing music: $error');
       if (mounted && !_musicStopped) {

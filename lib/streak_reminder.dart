@@ -21,7 +21,22 @@ DateTime? nextStreakReminder(Iterable<String> days, DateTime now) {
   return next.isAfter(now) ? next : null;
 }
 
+DateTime nextWeeklyReportTime(DateTime now) {
+  final days = (DateTime.monday - now.weekday + 7) % 7;
+  final candidate = DateTime(now.year, now.month, now.day + days, 8);
+  return candidate.isAfter(now)
+      ? candidate
+      : DateTime(candidate.year, candidate.month, candidate.day + 7, 8);
+}
+
 class StreakReminder with WidgetsBindingObserver {
+  StreakReminder({this.onWeeklyReport});
+  final VoidCallback? onWeeklyReport;
+  static const weeklyPayload = 'weekly_report';
+  void _onResponse(NotificationResponse response) {
+    if (!_disposed && response.payload == weeklyPayload) onWeeklyReport?.call();
+  }
+
   final _notifications = FlutterLocalNotificationsPlugin();
   Future<void> _queue = Future.value();
   bool _disposed = false;
@@ -32,11 +47,12 @@ class StreakReminder with WidgetsBindingObserver {
       (defaultTargetPlatform == TargetPlatform.iOS ||
           defaultTargetPlatform == TargetPlatform.android);
 
-  void start() {
-    if (!_supported) return;
+  Future<void> start() {
+    if (!_supported) return Future.value();
     WidgetsBinding.instance.addObserver(this);
     StreakService.changes.addListener(refresh);
     refresh();
+    return _queue;
   }
 
   void refresh() {
@@ -52,7 +68,14 @@ class StreakReminder with WidgetsBindingObserver {
                 ),
                 iOS: DarwinInitializationSettings(),
               ),
+              onDidReceiveNotificationResponse: _onResponse,
             );
+            final launch = await _notifications
+                .getNotificationAppLaunchDetails();
+            if (launch?.didNotificationLaunchApp == true &&
+                launch?.notificationResponse != null) {
+              _onResponse(launch!.notificationResponse!);
+            }
             await _notifications
                 .resolvePlatformSpecificImplementation<
                   AndroidFlutterLocalNotificationsPlugin
@@ -71,12 +94,33 @@ class StreakReminder with WidgetsBindingObserver {
           if (_disposed) return;
           final date = nextStreakReminder(days, DateTime.now());
           await _notifications.cancel(_id);
-          if (date == null) return;
+
           final android = _notifications
               .resolvePlatformSpecificImplementation<
                 AndroidFlutterLocalNotificationsPlugin
               >();
           final exact = await android?.canScheduleExactNotifications() ?? false;
+          final weekly = nextWeeklyReportTime(DateTime.now());
+          await _notifications.zonedSchedule(
+            22002,
+            "Here’s last week’s report",
+            'Take a moment to remember the good things from your week.',
+            tz.TZDateTime(tz.local, weekly.year, weekly.month, weekly.day, 8),
+            const NotificationDetails(
+              iOS: DarwinNotificationDetails(),
+              android: AndroidNotificationDetails(
+                'weekly_reports',
+                'Weekly reports',
+                channelDescription: 'Your weekly report on Monday at 08:00',
+              ),
+            ),
+            payload: weeklyPayload,
+            matchDateTimeComponents: DateTimeComponents.dayOfWeekAndTime,
+            androidScheduleMode: exact
+                ? AndroidScheduleMode.exactAllowWhileIdle
+                : AndroidScheduleMode.inexactAllowWhileIdle,
+          );
+          if (date == null) return;
           await _notifications.zonedSchedule(
             _id,
             'Keep your streak going',
