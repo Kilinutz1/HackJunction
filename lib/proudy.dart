@@ -1,9 +1,14 @@
+import 'dart:io'; // Needed for File
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart'; // NEW: Image Picker
 import 'localdb.dart';
 import 'event.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 
 class ProudyPage extends StatefulWidget {
-  const ProudyPage({super.key});
+  final Event? existingEvent; 
+
+  const ProudyPage({super.key, this.existingEvent});
 
   @override
   State<ProudyPage> createState() => _ProudyPageState();
@@ -14,9 +19,23 @@ class _ProudyPageState extends State<ProudyPage> {
   bool _isFavorite = false; 
   String _selectedType = 'Proud Moment'; 
   DateTime _selectedDate = DateTime.now(); 
+  String? _selectedImagePath; // NEW: Holds the path to our selected image
   
   final TextEditingController _textController = TextEditingController();
   final List<String> _eventTypes = ['Proud Moment','Memory', 'Other'];
+
+  @override
+  void initState() {
+    super.initState();
+    // Pre-fill if editing
+    if (widget.existingEvent != null) {
+      _isFavorite = widget.existingEvent!.isFavorite;
+      _selectedType = widget.existingEvent!.type;
+      _selectedDate = widget.existingEvent!.date;
+      _textController.text = widget.existingEvent!.description;
+      _selectedImagePath = widget.existingEvent!.pictureUrl; // Load existing image
+    }
+  }
 
   Future<void> _pickDate() async {
     final DateTime? picked = await showDatePicker(
@@ -32,8 +51,20 @@ class _ProudyPageState extends State<ProudyPage> {
     }
   }
 
+  // --- NEW: IMAGE PICKER LOGIC ---
+  Future<void> _pickImage() async {
+    final picker = ImagePicker();
+    // Force gallery selection only
+    final XFile? image = await picker.pickImage(source: ImageSource.gallery);
+    
+    if (image != null) {
+      setState(() {
+        _selectedImagePath = image.path; // Save the local path
+      });
+    }
+  }
+
   Future<void> _saveEvent() async {
-    // 1. Check if the text is empty
     if (_textController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please write a description first!')),
@@ -41,23 +72,42 @@ class _ProudyPageState extends State<ProudyPage> {
       return;
     }
 
-    // 2. Create the Event object
-    final newEvent = Event(
-      id: DateTime.now().millisecondsSinceEpoch.toString(), // Unique ID
-      type: _selectedType,
-      description: _textController.text.trim(),
-      date: _selectedDate,
-      isFavorite: _isFavorite,
-      // pictureUrl: null // We will add this when we wire up the camera
-    );
-
-    // 3. Save to database
     final db = LocalDatabase();
-    await db.addEvent(newEvent);
 
-    // 4. Return to the Main Screen
+    if (widget.existingEvent == null) {
+      final newEvent = Event(
+        id: DateTime.now().millisecondsSinceEpoch.toString(),
+        type: _selectedType,
+        description: _textController.text.trim(),
+        date: _selectedDate,
+        isFavorite: _isFavorite,
+        pictureUrl: _selectedImagePath, // Save the image path
+      );
+      await db.addEvent(newEvent);
+    } else {
+      final updatedEvent = Event(
+        id: widget.existingEvent!.id, 
+        type: _selectedType,
+        description: _textController.text.trim(),
+        date: _selectedDate,
+        isFavorite: _isFavorite,
+        pictureUrl: _selectedImagePath, // Save the updated/kept image path
+      );
+      await db.updateEvent(updatedEvent);
+    }
+
     if (mounted) {
-      Navigator.pop(context);
+      Navigator.pop(context, true); 
+    }
+  }
+
+  Future<void> _deleteEvent() async {
+    if (widget.existingEvent != null) {
+      final db = LocalDatabase();
+      await db.deleteEvent(widget.existingEvent!.id);
+      if (mounted) {
+        Navigator.pop(context, true); 
+      }
     }
   }
 
@@ -71,41 +121,68 @@ class _ProudyPageState extends State<ProudyPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Add Event'),
+        title: Text(widget.existingEvent == null ? 'Add Event' : 'Edit Event'),
         backgroundColor: Colors.transparent,
         elevation: 0,
+        actions: [
+          if (widget.existingEvent != null)
+            IconButton(
+              icon: const Icon(Icons.delete_outline, color: Colors.redAccent),
+              onPressed: () {
+                showDialog(
+                  context: context,
+                  builder: (context) => AlertDialog(
+                    title: const Text('Delete Memory?'),
+                    content: const Text('This cannot be undone.'),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(context), 
+                        child: const Text('Cancel')
+                      ),
+                      TextButton(
+                        onPressed: () {
+                          Navigator.pop(context); 
+                          _deleteEvent(); 
+                        }, 
+                        child: const Text('Delete', style: TextStyle(color: Colors.redAccent)),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
+        ],
       ),
       body: SafeArea(
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
-            // Top Row: Type Selector (Left) and Heart Button (Right)
             Card(
-                color: Theme.of(context).colorScheme.primaryContainer,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  side: BorderSide(
-                    color: Theme.of(context).colorScheme.primary,
-                  ),
-                ),
-                clipBehavior: Clip.antiAlias,
-                child: const ExpansionTile(
-                  leading: Icon(Icons.lightbulb_outline),
-                  title: Text(
-                    'Recommendations',
-                    style: TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                  subtitle: Text('Click to expand'),
-                  children: [
-                    ListTile(title: Text('Example 1')),
-                    ListTile(title: Text('Example 2')),
-                    ListTile(title: Text('Example 3')),
-                    ListTile(title: Text('Example 4')),
-                    ListTile(title: Text('Example 5')),
-                  ],
+              color: Theme.of(context).colorScheme.primaryContainer,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+                side: BorderSide(
+                  color: Theme.of(context).colorScheme.primary,
                 ),
               ),
-                const SizedBox(height: 5),
+              clipBehavior: Clip.antiAlias,
+              child: const ExpansionTile(
+                leading: Icon(Icons.lightbulb_outline),
+                title: Text(
+                  'Recommendations',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+                subtitle: Text('Click to expand'),
+                children: [
+                  ListTile(title: Text('Example 1')),
+                  ListTile(title: Text('Example 2')),
+                  ListTile(title: Text('Example 3')),
+                  ListTile(title: Text('Example 4')),
+                  ListTile(title: Text('Example 5')),
+                ],
+              ),
+            ),
+            const SizedBox(height: 5),
 
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -139,7 +216,6 @@ class _ProudyPageState extends State<ProudyPage> {
                   ),
                 ),
                 
-                // The Heart Button is now securely in the Row
                 IconButton(
                   icon: Icon(
                     _isFavorite ? Icons.favorite : Icons.favorite_border,
@@ -157,7 +233,6 @@ class _ProudyPageState extends State<ProudyPage> {
             
             const SizedBox(height: 5),
             
-            // Text Input Area
             TextField(
               controller: _textController,
               minLines: 5,
@@ -171,9 +246,45 @@ class _ProudyPageState extends State<ProudyPage> {
               ),
             ),
             
-            const SizedBox(height: 5),
+            const SizedBox(height: 15),
+
+            if (_selectedImagePath != null)
+              Stack(
+                alignment: Alignment.topRight,
+                children: [
+                  Center(
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(
+                        maxHeight: 200, // Keeps the preview a reasonable size
+                      ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(12),
+                        child: kIsWeb 
+                            ? Image.network(
+                                _selectedImagePath!,
+                                fit: BoxFit.contain, // Shows full image
+                              )
+                            : Image.file(
+                                File(_selectedImagePath!),
+                                fit: BoxFit.contain,
+                              ),
+                      ),
+                    ),
+                  ),
+                  // Button to remove the selected image
+                  IconButton(
+                    icon: const Icon(Icons.cancel, color: Colors.white),
+                    onPressed: () {
+                      setState(() {
+                        _selectedImagePath = null;
+                      });
+                    },
+                  )
+                ],
+              ),
             
-            // Bottom Row: Picture (Left) and Date (Right)
+            if (_selectedImagePath != null) const SizedBox(height: 15),
+            
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -182,13 +293,10 @@ class _ProudyPageState extends State<ProudyPage> {
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   ),
-                  icon: const Icon(Icons.add_photo_alternate_outlined),
-                  label: const Text('Picture'),
-                  onPressed: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Picture picker coming soon!')),
-                    );
-                  },
+                  // Change button icon/text depending on if an image is picked
+                  icon: Icon(_selectedImagePath == null ? Icons.add_photo_alternate_outlined : Icons.photo_library),
+                  label: Text(_selectedImagePath == null ? 'Picture' : 'Change Pic'),
+                  onPressed: _pickImage, // Calls our new gallery function
                 ),
                 
                 TextButton.icon(
@@ -201,14 +309,13 @@ class _ProudyPageState extends State<ProudyPage> {
                   ),
                   onPressed: _pickDate,
                 ),
-                
               ],
             ),
             const SizedBox(height: 15),
 
             SizedBox(
-                  child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.greenAccent.shade700,
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 16),
@@ -217,12 +324,12 @@ class _ProudyPageState extends State<ProudyPage> {
                   ),
                 ),
                 onPressed: _saveEvent,
-                child: const Text(
-                  'Save Event',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                child: Text(
+                  widget.existingEvent == null ? 'Save Event' : 'Update Event',
+                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
               ),
-              ),
+            ),
           ],
         ),
       ),

@@ -42,6 +42,14 @@ class MainScreen extends StatelessWidget {
         ),
       );
     }
+    if (buttonName=="favorites"){
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => MyMemoriesPage(initialShowFavoritesOnly: true),
+        ),
+      );
+    }
   }
 
   @override
