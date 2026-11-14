@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'add.dart';
+import 'proudy.dart';
 
 void main() {
   runApp(const HackathonApp());
@@ -25,13 +26,22 @@ class MainScreen extends StatelessWidget {
   const MainScreen({super.key});
 
   void _handleTap(BuildContext context, String buttonName) {
-    
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => TexttInput(),
-      ),
-    );
+    if (buttonName=="Add"){
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => TexttInput(),
+        ),
+      );
+    }
+    if (buttonName=="projects"){
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => ProudyPage(),
+        ),
+      );
+    }
   }
 
   @override
