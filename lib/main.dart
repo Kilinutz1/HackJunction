@@ -46,7 +46,7 @@ class MainScreen extends StatelessWidget {
         children: [
           // 1. The Scrollable Row of RemindWidgets
           SizedBox(
-            height: 100,
+            height: 140,
             child: ListView.builder(
               scrollDirection: Axis.horizontal,
               padding: const EdgeInsets.symmetric(horizontal: 8.0),
