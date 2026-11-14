@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'breath.dart';
+import 'streak.dart';
 
 class BreathingSetupPage extends StatefulWidget {
   const BreathingSetupPage({super.key});
@@ -97,7 +98,21 @@ class _BreathingSetupPageState extends State<BreathingSetupPage> {
                   durationInSeconds: _minutes * 60 + _seconds,
                   timedSession: true,
                   withMusic: _withMusic,
-                  onComplete: () => Navigator.of(sessionContext).pop(),
+                  onComplete: () async {
+                    Navigator.of(sessionContext).pop();
+                    try {
+                      await StreakService().recordActivity();
+                    } catch (_) {
+                      if (!context.mounted) return;
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text(
+                            'Could not save your streak activity. Please try again.',
+                          ),
+                        ),
+                      );
+                    }
+                  },
                 ),
               ),
             ),

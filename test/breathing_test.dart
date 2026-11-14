@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:my_proud_space/breath.dart';
+import 'package:my_proud_space/streak.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:my_proud_space/breathing_setup.dart';
 
 void main() {
   testWidgets('Duration limits and timed completion', (tester) async {
+    SharedPreferences.setMockInitialValues({});
     tester.view.physicalSize = const Size(390, 844);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.resetPhysicalSize);
@@ -28,6 +31,7 @@ void main() {
     );
     await tester.pageBack();
     await tester.pumpAndSettle();
+    expect(await StreakService().getActiveDays(), isEmpty);
     tester.widget<DropdownButtonFormField<int>>(pickers.first).onChanged!(0);
     await tester.pump();
     expect(
@@ -46,6 +50,9 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byType(BreatheScreen), findsNothing);
     expect(find.byType(BreathingSetupPage), findsOneWidget);
+    expect(await StreakService().getActiveDays(), [
+      StreakService.dayKey(DateTime.now()),
+    ]);
     expect(tester.takeException(), isNull);
   });
 
