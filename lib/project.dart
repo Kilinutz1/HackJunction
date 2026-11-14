@@ -265,9 +265,8 @@ class _ProjectLogbookPageState extends State<_ProjectLogbookPage> {
                             borderRadius: BorderRadius.circular(8),
                             child: Image.memory(
                               _entryImage!,
-                              height: 150,
                               width: double.infinity,
-                              fit: BoxFit.cover,
+                              fit: BoxFit.contain,
                             ),
                           ),
                           IconButton.filled(
@@ -415,9 +414,8 @@ class _ProjectLogbookPageState extends State<_ProjectLogbookPage> {
                           borderRadius: BorderRadius.circular(8),
                           child: Image.memory(
                             entry.image!,
-                            height: 200,
                             width: double.infinity,
-                            fit: BoxFit.cover,
+                            fit: BoxFit.contain,
                             errorBuilder: (_, error, stackTrace) =>
                                 const Text('Image unavailable'),
                           ),

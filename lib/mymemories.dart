@@ -264,7 +264,9 @@ class _MyMemoriesPageState extends State<MyMemoriesPage> {
         children: [
           // 1. The Image (Only shows if a pictureUrl exists)
           if (event.pictureUrl != null && event.pictureUrl!.isNotEmpty)
-            Center(
+            Padding(
+            padding: const EdgeInsets.only(top: 16.0, left: 16.0, right: 16.0),
+            child: Center(
               child: ConstrainedBox(
                 constraints: const BoxConstraints(
                   maxHeight:
@@ -291,7 +293,7 @@ class _MyMemoriesPageState extends State<MyMemoriesPage> {
                             _buildImageError(),
                       ),
               ),
-            ),
+            )),
 
           Padding(
             padding: const EdgeInsets.all(16.0),

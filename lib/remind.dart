@@ -60,17 +60,32 @@ class RewindListWidgetState extends State<RewindListWidget> {
     final projectStore = ProjectStore();
     await projectStore.load(); // Fetch from SharedPreferences
 
-    List<Event> projectEvents = [];
     final random = Random();
 
-    for (var project in projectStore.value) {
-      // Grab all logbook entries (standalone images were removed from projects!)
-      for (var entry in project.logbook.entries) {
+    // 1. Filter: Finde alle Projekte, die mindestens einen Logbuch-Eintrag haben
+    final eligibleProjects = projectStore.value
+        .where((p) => p.logbook.entries.isNotEmpty)
+        .toList();
+
+    if (eligibleProjects.isNotEmpty) {
+      // 2. Wähle EIN zufälliges Projekt aus
+      final selectedProject = eligibleProjects[random.nextInt(eligibleProjects.length)];
+
+      List<Event> projectEvents = [];
+
+      // 3. Sortiere die Einträge dieses Projekts chronologisch (alt nach neu),
+      // damit die Story einen echten Fortschritt zeigt!
+      final sortedEntries = selectedProject.logbook.entries.toList()
+        ..sort((a, b) => a.date.compareTo(b.date));
+
+      // 4. Wandle sie in Events um
+      for (var entry in sortedEntries) {
         projectEvents.add(
           Event(
-            id: 'proj_log_${DateTime.now().microsecondsSinceEpoch}_${random.nextInt(10000)}',
+            id: entry.id, 
             type: 'Project Spotlight',
-            description: '${project.name}:\n${entry.text}',
+            // Zeigt den Projektnamen + den Text des Eintrags an
+            description: '${selectedProject.name}:\n${entry.text}',
             date: entry.date,
             isFavorite: true,
             pictureUrl: entry.image != null
@@ -79,15 +94,16 @@ class RewindListWidgetState extends State<RewindListWidget> {
           ),
         );
       }
-    }
 
-    // If we found any project logs, shuffle them and take a maximum of 10!
-    if (projectEvents.isNotEmpty) {
-      projectEvents.shuffle(random);
-      finalGroups['Project Spotlight'] = projectEvents.take(10).toList();
+      // Nimm maximal 10 Einträge (damit die Story nicht endlos wird) und füge sie hinzu
+      if (projectEvents.isNotEmpty) {
+        finalGroups['Project Spotlight'] = projectEvents.take(10).toList();
+      }
     }
-    // ------------------------------------------
+    
     projectStore.dispose();
+    // ------------------------------------------
+    
     if (!mounted) return;
 
     setState(() {
@@ -227,11 +243,11 @@ class SingleRewindWidget extends StatelessWidget {
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(16),
           color: Theme.of(context).colorScheme.primary,
-          boxShadow: [
+          boxShadow: const [
             BoxShadow(
               color: Colors.transparent,
               blurRadius: 5,
-              offset: const Offset(0, 3),
+              offset: Offset(0, 3),
             ),
           ],
         ),
@@ -239,17 +255,21 @@ class SingleRewindWidget extends StatelessWidget {
           fit: StackFit.expand,
           children: [
             if (hasPicture)
-              kIsWeb
-                  ? (coverEvent.pictureUrl!.startsWith('base64:')
-                        ? Image.memory(
-                            base64Decode(coverEvent.pictureUrl!.substring(7)),
-                            fit: BoxFit.cover,
-                          )
-                        : Image.network(
-                            coverEvent.pictureUrl!,
-                            fit: BoxFit.cover,
-                          ))
-                  : Image.file(File(coverEvent.pictureUrl!), fit: BoxFit.cover)
+              // --- FIX: ZUERST prüfen, ob es Base64 ist, EGAL ob Web oder Handy ---
+              coverEvent.pictureUrl!.startsWith('base64:')
+                  ? Image.memory(
+                      base64Decode(coverEvent.pictureUrl!.substring(7)),
+                      fit: BoxFit.cover,
+                    )
+                  : (kIsWeb
+                      ? Image.network(
+                          coverEvent.pictureUrl!,
+                          fit: BoxFit.cover,
+                        )
+                      : Image.file(
+                          File(coverEvent.pictureUrl!),
+                          fit: BoxFit.cover,
+                        ))
             else
               Container(
                 decoration: BoxDecoration(
@@ -369,22 +389,21 @@ class _StoryViewerScreenState extends State<StoryViewerScreen> {
                 width: double.infinity,
                 height: double.infinity,
                 child: hasPicture
-                    ? (kIsWeb
-                          ? (currentEvent.pictureUrl!.startsWith('base64:')
-                                ? Image.memory(
-                                    base64Decode(
-                                      currentEvent.pictureUrl!.substring(7),
-                                    ),
-                                    fit: BoxFit.contain,
-                                  )
-                                : Image.network(
-                                    currentEvent.pictureUrl!,
-                                    fit: BoxFit.contain,
-                                  ))
-                          : Image.file(
-                              File(currentEvent.pictureUrl!),
-                              fit: BoxFit.contain,
-                            ))
+                    // --- FIX: Auch hier die Reihenfolge der Überprüfung angepasst ---
+                    ? (currentEvent.pictureUrl!.startsWith('base64:')
+                        ? Image.memory(
+                            base64Decode(currentEvent.pictureUrl!.substring(7)),
+                            fit: BoxFit.contain,
+                          )
+                        : (kIsWeb
+                            ? Image.network(
+                                currentEvent.pictureUrl!,
+                                fit: BoxFit.contain,
+                              )
+                            : Image.file(
+                                File(currentEvent.pictureUrl!),
+                                fit: BoxFit.contain,
+                              )))
                     : Container(
                         decoration: BoxDecoration(
                           gradient: LinearGradient(
