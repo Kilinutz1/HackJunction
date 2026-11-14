@@ -1,3 +1,4 @@
+import 'app_theme.dart';
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -226,7 +227,13 @@ class _StreakBadgeState extends State<StreakBadge> with WidgetsBindingObserver {
     child: Wrap(
       spacing: 12,
       children: [
-        Text('$label:', style: const TextStyle(fontWeight: FontWeight.w600)),
+        Text(
+          '$label:',
+          style: const TextStyle(
+            fontFamily: 'Roboto',
+            fontWeight: FontWeight.w600,
+          ),
+        ),
         Text(value),
       ],
     ),
@@ -245,7 +252,7 @@ class _StreakBadgeState extends State<StreakBadge> with WidgetsBindingObserver {
         icon: const Icon(
           Icons.local_fire_department,
           size: 20,
-          color: Colors.deepOrange,
+          color: AppPalette.clay,
         ),
         label: Text(
           stats == null ? '…' : '${stats.current} day streak',

@@ -14,7 +14,8 @@ class BreatheScreen extends StatefulWidget {
   State<BreatheScreen> createState() => _BreatheScreenState();
 }
 
-class _BreatheScreenState extends State<BreatheScreen> with TickerProviderStateMixin {
+class _BreatheScreenState extends State<BreatheScreen>
+    with TickerProviderStateMixin {
   late AnimationController _breatheController;
   late AnimationController _progressController;
   late Animation<double> _scaleAnimation;
@@ -71,7 +72,7 @@ class _BreatheScreenState extends State<BreatheScreen> with TickerProviderStateM
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.teal.shade900,
+      backgroundColor: Theme.of(context).colorScheme.primary,
       body: SafeArea(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
@@ -84,7 +85,7 @@ class _BreatheScreenState extends State<BreatheScreen> with TickerProviderStateM
                 fontWeight: FontWeight.w500,
               ),
             ),
-            
+
             // The Breathing Circle
             Center(
               child: AnimatedBuilder(
@@ -97,10 +98,14 @@ class _BreatheScreenState extends State<BreatheScreen> with TickerProviderStateM
                       height: 250,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        color: Colors.tealAccent.withOpacity(0.3),
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.primaryContainer.withOpacity(0.3),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.tealAccent.withOpacity(0.5),
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.primaryContainer.withOpacity(0.5),
                             blurRadius: 50,
                             spreadRadius: 20 * _scaleAnimation.value,
                           ),
@@ -110,9 +115,11 @@ class _BreatheScreenState extends State<BreatheScreen> with TickerProviderStateM
                         child: Container(
                           width: 150,
                           height: 150,
-                          decoration: const BoxDecoration(
+                          decoration: BoxDecoration(
                             shape: BoxShape.circle,
-                            color: Colors.tealAccent,
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.primaryContainer,
                           ),
                         ),
                       ),
@@ -150,7 +157,8 @@ class _BreatheScreenState extends State<BreatheScreen> with TickerProviderStateM
                     height: 56,
                     width: double.infinity,
                     decoration: BoxDecoration(
-                      color: Colors.white24, // Background of the unfilled button
+                      color:
+                          Colors.white24, // Background of the unfilled button
                       borderRadius: BorderRadius.circular(28),
                     ),
                     clipBehavior: Clip.antiAlias,
@@ -164,9 +172,7 @@ class _BreatheScreenState extends State<BreatheScreen> with TickerProviderStateM
                             FractionallySizedBox(
                               widthFactor: progress,
                               heightFactor: 1.0,
-                              child: Container(
-                                color: Colors.white,
-                              ),
+                              child: Container(color: Colors.white),
                             ),
                             // Button Text
                             Center(
@@ -175,8 +181,8 @@ class _BreatheScreenState extends State<BreatheScreen> with TickerProviderStateM
                                 style: TextStyle(
                                   fontSize: 18,
                                   fontWeight: FontWeight.bold,
-                                  color: isReady 
-                                      ? Colors.teal.shade900 
+                                  color: isReady
+                                      ? Theme.of(context).colorScheme.primary
                                       : Colors.white54,
                                 ),
                               ),

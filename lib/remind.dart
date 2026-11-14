@@ -1,3 +1,4 @@
+import 'app_theme.dart';
 import 'dart:io';
 import 'dart:math';
 import 'package:flutter/material.dart';
@@ -31,14 +32,16 @@ class _RewindListWidgetState extends State<RewindListWidget> {
   Future<void> _loadEvents() async {
     final db = LocalDatabase();
     final allEvents = await db.getAllEvents();
-    
+
     // 1. Separate all normal events into our two main categories
     final memoryEvents = allEvents.where((e) => e.type == 'Memory').toList();
-    final proudEvents = allEvents.where((e) => e.type == 'Proud Moment').toList();
+    final proudEvents = allEvents
+        .where((e) => e.type == 'Proud Moment')
+        .toList();
 
     // 2. Run our custom algorithm on both normal buckets
     final Map<String, List<Event>> finalGroups = {};
-    
+
     final finalMemories = _generateRandomBucket(memoryEvents);
     if (finalMemories.isNotEmpty) {
       finalGroups['Memory'] = finalMemories;
@@ -59,14 +62,18 @@ class _RewindListWidgetState extends State<RewindListWidget> {
     for (var project in projectStore.value) {
       // Grab all logbook entries (standalone images were removed from projects!)
       for (var entry in project.logbook.entries) {
-        projectEvents.add(Event(
-          id: 'proj_log_${DateTime.now().microsecondsSinceEpoch}_${random.nextInt(10000)}',
-          type: 'Project Spotlight',
-          description: '${project.name}:\n${entry.text}', 
-          date: entry.date,
-          isFavorite: true,
-          pictureUrl: entry.image != null ? 'base64:${base64Encode(entry.image!)}' : null,
-        ));
+        projectEvents.add(
+          Event(
+            id: 'proj_log_${DateTime.now().microsecondsSinceEpoch}_${random.nextInt(10000)}',
+            type: 'Project Spotlight',
+            description: '${project.name}:\n${entry.text}',
+            date: entry.date,
+            isFavorite: true,
+            pictureUrl: entry.image != null
+                ? 'base64:${base64Encode(entry.image!)}'
+                : null,
+          ),
+        );
       }
     }
 
@@ -88,12 +95,16 @@ class _RewindListWidgetState extends State<RewindListWidget> {
     if (categoryEvents.isEmpty) return [];
 
     final random = Random();
-    
+
     final sizeOptions = [1, 1, 1, 2, 2, 3, 4, 5];
     int targetSize = sizeOptions[random.nextInt(sizeOptions.length)];
 
-    List<Event> likedEvents = categoryEvents.where((e) => e.isFavorite).toList();
-    List<Event> unlikedEvents = categoryEvents.where((e) => !e.isFavorite).toList();
+    List<Event> likedEvents = categoryEvents
+        .where((e) => e.isFavorite)
+        .toList();
+    List<Event> unlikedEvents = categoryEvents
+        .where((e) => !e.isFavorite)
+        .toList();
 
     likedEvents.shuffle(random);
     unlikedEvents.shuffle(random);
@@ -121,21 +132,30 @@ class _RewindListWidgetState extends State<RewindListWidget> {
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
-      return const SizedBox(
-        height: 140,
-        child: Center(child: CircularProgressIndicator(color: Colors.purpleAccent)),
+      return SizedBox(
+        height: 132,
+        child: Center(
+          child: CircularProgressIndicator(
+            color: Theme.of(context).colorScheme.primary,
+          ),
+        ),
       );
     }
 
     if (_groupedEvents.isEmpty) {
-      return const SizedBox(
-        height: 140,
-        child: Center(child: Text("Add some events to see your Rewind!", style: TextStyle(color: Colors.grey))),
+      return SizedBox(
+        height: 132,
+        child: Center(
+          child: Text(
+            "Add some events to see your Rewind!",
+            style: TextStyle(fontFamily: 'Roboto', color: Colors.grey),
+          ),
+        ),
       );
     }
 
     return SizedBox(
-      height: 140,
+      height: 132,
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 8.0),
@@ -143,7 +163,7 @@ class _RewindListWidgetState extends State<RewindListWidget> {
         itemBuilder: (context, index) {
           final type = _groupedEvents.keys.elementAt(index);
           final eventsList = _groupedEvents[type]!;
-          
+
           final musicTrack = type == 'Proud Moment' ? 'funky.m4a' : 'lofty.m4a';
 
           return SingleRewindWidget(
@@ -175,10 +195,11 @@ class SingleRewindWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final coverEvent = events.firstWhere(
-      (e) => e.pictureUrl != null && e.pictureUrl!.isNotEmpty, 
-      orElse: () => events.first
+      (e) => e.pictureUrl != null && e.pictureUrl!.isNotEmpty,
+      orElse: () => events.first,
     );
-    final hasPicture = coverEvent.pictureUrl != null && coverEvent.pictureUrl!.isNotEmpty;
+    final hasPicture =
+        coverEvent.pictureUrl != null && coverEvent.pictureUrl!.isNotEmpty;
 
     return GestureDetector(
       onTap: () {
@@ -194,18 +215,18 @@ class SingleRewindWidget extends StatelessWidget {
         );
       },
       child: Container(
-        width: 100,
+        width: 148,
         margin: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 8.0),
         clipBehavior: Clip.antiAlias,
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(16),
-          color: Colors.grey.shade800,
+          color: Theme.of(context).colorScheme.primary,
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.3),
+              color: Colors.transparent,
               blurRadius: 5,
               offset: const Offset(0, 3),
-            )
+            ),
           ],
         ),
         child: Stack(
@@ -214,14 +235,23 @@ class SingleRewindWidget extends StatelessWidget {
             if (hasPicture)
               kIsWeb
                   ? (coverEvent.pictureUrl!.startsWith('base64:')
-                      ? Image.memory(base64Decode(coverEvent.pictureUrl!.substring(7)), fit: BoxFit.cover)
-                      : Image.network(coverEvent.pictureUrl!, fit: BoxFit.cover))
+                        ? Image.memory(
+                            base64Decode(coverEvent.pictureUrl!.substring(7)),
+                            fit: BoxFit.cover,
+                          )
+                        : Image.network(
+                            coverEvent.pictureUrl!,
+                            fit: BoxFit.cover,
+                          ))
                   : Image.file(File(coverEvent.pictureUrl!), fit: BoxFit.cover)
             else
               Container(
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
-                    colors: [Colors.purpleAccent.shade700, Colors.deepPurple.shade900],
+                    colors: [
+                      Theme.of(context).colorScheme.primary,
+                      AppPalette.ink,
+                    ],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
@@ -237,6 +267,7 @@ class SingleRewindWidget extends StatelessWidget {
                   title,
                   textAlign: TextAlign.center,
                   style: const TextStyle(
+                    fontFamily: 'Roboto',
                     color: Colors.white,
                     fontWeight: FontWeight.bold,
                     fontSize: 14,
@@ -315,12 +346,13 @@ class _StoryViewerScreenState extends State<StoryViewerScreen> {
   @override
   Widget build(BuildContext context) {
     final currentEvent = widget.events[_currentIndex];
-    final hasPicture = currentEvent.pictureUrl != null && currentEvent.pictureUrl!.isNotEmpty;
+    final hasPicture =
+        currentEvent.pictureUrl != null && currentEvent.pictureUrl!.isNotEmpty;
 
     return Scaffold(
       backgroundColor: Colors.black,
       body: GestureDetector(
-        onTapUp: _onTap, 
+        onTapUp: _onTap,
         child: Stack(
           fit: StackFit.expand,
           children: [
@@ -332,14 +364,28 @@ class _StoryViewerScreenState extends State<StoryViewerScreen> {
                 height: double.infinity,
                 child: hasPicture
                     ? (kIsWeb
-                        ? (currentEvent.pictureUrl!.startsWith('base64:')
-                            ? Image.memory(base64Decode(currentEvent.pictureUrl!.substring(7)), fit: BoxFit.contain)
-                            : Image.network(currentEvent.pictureUrl!, fit: BoxFit.contain))
-                        : Image.file(File(currentEvent.pictureUrl!), fit: BoxFit.contain))
+                          ? (currentEvent.pictureUrl!.startsWith('base64:')
+                                ? Image.memory(
+                                    base64Decode(
+                                      currentEvent.pictureUrl!.substring(7),
+                                    ),
+                                    fit: BoxFit.contain,
+                                  )
+                                : Image.network(
+                                    currentEvent.pictureUrl!,
+                                    fit: BoxFit.contain,
+                                  ))
+                          : Image.file(
+                              File(currentEvent.pictureUrl!),
+                              fit: BoxFit.contain,
+                            ))
                     : Container(
                         decoration: BoxDecoration(
                           gradient: LinearGradient(
-                            colors: [Colors.teal.shade700, Colors.blueGrey.shade900],
+                            colors: [
+                              Theme.of(context).colorScheme.primary,
+                              AppPalette.ink,
+                            ],
                             begin: Alignment.topRight,
                             end: Alignment.bottomLeft,
                           ),
@@ -371,7 +417,9 @@ class _StoryViewerScreenState extends State<StoryViewerScreen> {
                       margin: const EdgeInsets.symmetric(horizontal: 2),
                       height: 4,
                       decoration: BoxDecoration(
-                        color: index <= _currentIndex ? Colors.white : Colors.white30,
+                        color: index <= _currentIndex
+                            ? Colors.white
+                            : Colors.white30,
                         borderRadius: BorderRadius.circular(2),
                       ),
                     ),
@@ -389,7 +437,12 @@ class _StoryViewerScreenState extends State<StoryViewerScreen> {
                 children: [
                   Text(
                     widget.title,
-                    style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+                    style: const TextStyle(
+                      fontFamily: 'Roboto',
+                      color: Colors.white,
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                   IconButton(
                     icon: const Icon(Icons.close, color: Colors.white),
@@ -412,16 +465,21 @@ class _StoryViewerScreenState extends State<StoryViewerScreen> {
                     Text(
                       currentEvent.description,
                       style: const TextStyle(
-                        color: Colors.white, 
-                        fontSize: 24, 
+                        fontFamily: 'Roboto',
+                        color: Colors.white,
+                        fontSize: 24,
                         fontWeight: FontWeight.bold,
-                        shadows: [Shadow(color: Colors.black, blurRadius: 10)]
+                        shadows: [Shadow(color: Colors.black, blurRadius: 10)],
                       ),
                     ),
                     const SizedBox(height: 8),
                     Text(
                       '${currentEvent.date.day}/${currentEvent.date.month}/${currentEvent.date.year}',
-                      style: TextStyle(color: Colors.white.withOpacity(0.8), fontSize: 16),
+                      style: TextStyle(
+                        fontFamily: 'Roboto',
+                        color: Colors.white.withOpacity(0.8),
+                        fontSize: 16,
+                      ),
                     ),
                   ],
                 ),

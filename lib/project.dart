@@ -1,3 +1,4 @@
+import 'app_theme.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'dart:math';
@@ -31,11 +32,13 @@ enum _ProjectSort {
 
 class ProjectLogEntry {
   ProjectLogEntry({
-    required this.date, 
-    required this.text, 
+    required this.date,
+    required this.text,
     this.image,
     String? id,
-  }) : id = id ?? '${DateTime.now().microsecondsSinceEpoch}-${Random().nextInt(0x7fffffff)}';
+  }) : id =
+           id ??
+           '${DateTime.now().microsecondsSinceEpoch}-${Random().nextInt(0x7fffffff)}';
 
   final String id;
   final DateTime date;
@@ -62,7 +65,7 @@ class ProjectLogEntry {
 
 class ProjectLogbook {
   ProjectLogbook([Iterable<ProjectLogEntry> entries = const []])
-      : entries = [...entries];
+    : entries = [...entries];
   final List<ProjectLogEntry> entries;
   VoidCallback? onChanged;
 }
@@ -81,7 +84,7 @@ class _ProjectLogbookPageState extends State<_ProjectLogbookPage> {
   final _textController = TextEditingController();
   DateTime _date = DateUtils.dateOnly(DateTime.now());
   String? _textError;
-  
+
   String? _editingEntryId;
   Uint8List? _entryImage;
 
@@ -117,9 +120,9 @@ class _ProjectLogbookPageState extends State<_ProjectLogbookPage> {
       }
     } catch (_) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Could not load image.')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Could not load image.')));
       }
     }
   }
@@ -130,10 +133,12 @@ class _ProjectLogbookPageState extends State<_ProjectLogbookPage> {
       setState(() => _textError = 'Please describe your progress.');
       return;
     }
-    
+
     setState(() {
       if (_editingEntryId != null) {
-        final index = widget.logbook.entries.indexWhere((e) => e.id == _editingEntryId);
+        final index = widget.logbook.entries.indexWhere(
+          (e) => e.id == _editingEntryId,
+        );
         if (index != -1) {
           widget.logbook.entries[index] = ProjectLogEntry(
             id: _editingEntryId,
@@ -148,7 +153,7 @@ class _ProjectLogbookPageState extends State<_ProjectLogbookPage> {
           ProjectLogEntry(date: _date, text: text, image: _entryImage),
         );
       }
-      
+
       _textController.clear();
       _textError = null;
       _date = DateUtils.dateOnly(DateTime.now());
@@ -189,11 +194,17 @@ class _ProjectLogbookPageState extends State<_ProjectLogbookPage> {
       return dateOrder != 0
           ? dateOrder
           : widget.logbook.entries
-              .indexOf(a)
-              .compareTo(widget.logbook.entries.indexOf(b));
+                .indexOf(a)
+                .compareTo(widget.logbook.entries.indexOf(b));
     });
     return Scaffold(
-      appBar: AppBar(title: const Text('Logbook', style: TextStyle(fontWeight: FontWeight.bold)),backgroundColor: const Color.fromARGB(0, 0, 0, 0),),
+      appBar: AppBar(
+        title: const Text(
+          'Logbook',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
+        backgroundColor: const Color.fromARGB(0, 0, 0, 0),
+      ),
       body: SafeArea(
         child: ListView(
           padding: const EdgeInsets.all(16),
@@ -203,10 +214,14 @@ class _ProjectLogbookPageState extends State<_ProjectLogbookPage> {
               style: Theme.of(context).textTheme.headlineSmall,
             ),
             const SizedBox(height: 16),
-            
+
             Card(
               elevation: _editingEntryId != null ? 4 : 1,
-              color: _editingEntryId != null ? Colors.purple.withOpacity(0.05) : null,
+              color: _editingEntryId != null
+                  ? Theme.of(
+                      context,
+                    ).colorScheme.primary.withValues(alpha: 0.05)
+                  : null,
               child: Padding(
                 padding: const EdgeInsets.all(16),
                 child: Column(
@@ -216,7 +231,9 @@ class _ProjectLogbookPageState extends State<_ProjectLogbookPage> {
                       _editingEntryId != null ? 'Edit Entry' : 'New Entry',
                       style: Theme.of(context).textTheme.titleMedium?.copyWith(
                         fontWeight: FontWeight.bold,
-                        color: _editingEntryId != null ? Colors.purple : null,
+                        color: _editingEntryId != null
+                            ? Theme.of(context).colorScheme.primary
+                            : null,
                       ),
                     ),
                     const SizedBox(height: 12),
@@ -239,7 +256,7 @@ class _ProjectLogbookPageState extends State<_ProjectLogbookPage> {
                       ),
                     ),
                     const SizedBox(height: 12),
-                    
+
                     if (_entryImage != null)
                       Stack(
                         alignment: Alignment.topRight,
@@ -260,7 +277,7 @@ class _ProjectLogbookPageState extends State<_ProjectLogbookPage> {
                         ],
                       ),
                     if (_entryImage != null) const SizedBox(height: 12),
-                    
+
                     Wrap(
                       spacing: 8,
                       runSpacing: 8,
@@ -269,8 +286,14 @@ class _ProjectLogbookPageState extends State<_ProjectLogbookPage> {
                       children: [
                         OutlinedButton.icon(
                           onPressed: _pickImage,
-                          icon: Icon(_entryImage == null ? Icons.add_photo_alternate : Icons.photo),
-                          label: Text(_entryImage == null ? 'Add photo' : 'Change photo'),
+                          icon: Icon(
+                            _entryImage == null
+                                ? Icons.add_photo_alternate
+                                : Icons.photo,
+                          ),
+                          label: Text(
+                            _entryImage == null ? 'Add photo' : 'Change photo',
+                          ),
                         ),
                         Row(
                           mainAxisSize: MainAxisSize.min,
@@ -289,8 +312,16 @@ class _ProjectLogbookPageState extends State<_ProjectLogbookPage> {
                               ),
                             FilledButton.icon(
                               onPressed: _saveEntry,
-                              icon: Icon(_editingEntryId != null ? Icons.save : Icons.add),
-                              label: Text(_editingEntryId != null ? 'Update' : 'Add entry'),
+                              icon: Icon(
+                                _editingEntryId != null
+                                    ? Icons.save
+                                    : Icons.add,
+                              ),
+                              label: Text(
+                                _editingEntryId != null
+                                    ? 'Update'
+                                    : 'Add entry',
+                              ),
                             ),
                           ],
                         ),
@@ -300,7 +331,7 @@ class _ProjectLogbookPageState extends State<_ProjectLogbookPage> {
                 ),
               ),
             ),
-            
+
             const SizedBox(height: 24),
             Text('Entries', style: Theme.of(context).textTheme.titleLarge),
             const SizedBox(height: 8),
@@ -308,7 +339,7 @@ class _ProjectLogbookPageState extends State<_ProjectLogbookPage> {
               const Text(
                 'No entries yet. Record your first progress update above.',
               ),
-            
+
             for (final entry in entries)
               Card(
                 margin: const EdgeInsets.only(bottom: 12),
@@ -322,9 +353,10 @@ class _ProjectLogbookPageState extends State<_ProjectLogbookPage> {
                         children: [
                           Text(
                             _formatDate(entry.date),
-                            style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                              color: Theme.of(context).colorScheme.primary,
-                            ),
+                            style: Theme.of(context).textTheme.titleSmall
+                                ?.copyWith(
+                                  color: Theme.of(context).colorScheme.primary,
+                                ),
                           ),
                           Row(
                             children: [
@@ -336,31 +368,43 @@ class _ProjectLogbookPageState extends State<_ProjectLogbookPage> {
                               ),
                               const SizedBox(width: 16),
                               IconButton(
-                                icon: const Icon(Icons.delete_outline, size: 20, color: Colors.red),
+                                icon: const Icon(
+                                  Icons.delete_outline,
+                                  size: 20,
+                                  color: Colors.red,
+                                ),
                                 onPressed: () {
                                   showDialog(
                                     context: context,
                                     builder: (ctx) => AlertDialog(
                                       title: const Text('Delete Entry?'),
-                                      content: const Text('Are you sure you want to delete this log entry?'),
+                                      content: const Text(
+                                        'Are you sure you want to delete this log entry?',
+                                      ),
                                       actions: [
-                                        TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+                                        TextButton(
+                                          onPressed: () => Navigator.pop(ctx),
+                                          child: const Text('Cancel'),
+                                        ),
                                         TextButton(
                                           onPressed: () {
                                             Navigator.pop(ctx);
                                             _deleteEntry(entry);
-                                          }, 
-                                          child: const Text('Delete', style: TextStyle(color: Colors.red))
+                                          },
+                                          child: const Text(
+                                            'Delete',
+                                            style: TextStyle(color: Colors.red),
+                                          ),
                                         ),
                                       ],
-                                    )
+                                    ),
                                   );
                                 },
                                 padding: EdgeInsets.zero,
                                 constraints: const BoxConstraints(),
                               ),
                             ],
-                          )
+                          ),
                         ],
                       ),
                       const SizedBox(height: 8),
@@ -401,7 +445,9 @@ class Project {
     ProjectLogbook? logbook,
     String? id,
     this.completed = false,
-  }) : id = id ?? '${DateTime.now().microsecondsSinceEpoch}-${Random().nextInt(0x7fffffff)}',
+  }) : id =
+           id ??
+           '${DateTime.now().microsecondsSinceEpoch}-${Random().nextInt(0x7fffffff)}',
        logbook = logbook ?? ProjectLogbook(),
        createdAt = createdAt ?? DateTime.now();
 
@@ -676,7 +722,13 @@ class _ProjectsPageState extends State<ProjectsPage>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Projects', style: TextStyle(fontWeight: FontWeight.bold)),backgroundColor: const Color.fromARGB(0, 0, 0, 0),),
+      appBar: AppBar(
+        centerTitle: true,
+        title: const Text(
+          'Projects',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
+      ),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : _loadFailed
@@ -743,7 +795,13 @@ class _AllProjectsPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('All Projects', style: TextStyle(fontWeight: FontWeight.bold)),backgroundColor: const Color.fromARGB(0, 0, 0, 0),),
+      appBar: AppBar(
+        centerTitle: true,
+        title: const Text(
+          'All Projects',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
+      ),
       body: SafeArea(
         child: Column(
           children: [
@@ -846,11 +904,11 @@ class _ProjectsListState extends State<_ProjectsList> {
               items.sort((a, b) {
                 final order = switch (_sort) {
                   _ProjectSort.priority => (b.importance ?? 0).compareTo(
-                      a.importance ?? 0,
-                    ),
+                    a.importance ?? 0,
+                  ),
                   _ProjectSort.duration => b.durationDays.compareTo(
-                      a.durationDays,
-                    ),
+                    a.durationDays,
+                  ),
                   _ProjectSort.oldest => a.createdAt.compareTo(b.createdAt),
                   _ProjectSort.newest => b.createdAt.compareTo(a.createdAt),
                 };
@@ -861,8 +919,9 @@ class _ProjectsListState extends State<_ProjectsList> {
               return LayoutBuilder(
                 builder: (context, constraints) {
                   // --- FIX: Syntax error from copy-paste fixed here! ---
-                  final cardExtent = 168.0 * MediaQuery.textScalerOf(context).scale(16) / 16;
-                  
+                  final cardExtent =
+                      168.0 * MediaQuery.textScalerOf(context).scale(16) / 16;
+
                   final visibleCount = widget.preview
                       ? min(
                           items.length,
@@ -891,121 +950,156 @@ class _ProjectsListState extends State<_ProjectsList> {
                     itemCount: visibleCount,
                     itemBuilder: (context, index) {
                       final project = items[index];
-                      
-                      final images = project.logbook.entries.where((e) => e.image != null);
-                      final firstLogImage = images.isNotEmpty ? images.first.image : null;
+
+                      final images = project.logbook.entries.where(
+                        (e) => e.image != null,
+                      );
+                      final firstLogImage = images.isNotEmpty
+                          ? images.first.image
+                          : null;
 
                       return Card(
-                        margin: const EdgeInsets.only(bottom: 12),
+                        margin: const EdgeInsets.only(bottom: 16),
+                        elevation: 0,
+                        color: AppPalette.surface,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
                         clipBehavior: Clip.antiAlias,
-                        child: ListTile(
-                          contentPadding: const EdgeInsets.all(16),
-                          leading: firstLogImage == null
-                              ? const Icon(Icons.folder_outlined)
-                              : ClipRRect(
-                                  borderRadius: BorderRadius.circular(8),
-                                  child: Image.memory(
-                                    firstLogImage,
-                                    width: 48,
-                                    height: 48,
-                                    fit: BoxFit.cover,
-                                    errorBuilder: (_, error, stackTrace) =>
-                                        const Icon(Icons.broken_image_outlined),
-                                  ),
-                                ),
-                          title: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                project.name,
-                                maxLines: widget.preview ? 1 : null,
-                                overflow: widget.preview
-                                    ? TextOverflow.ellipsis
-                                    : null,
-                              ),
-                              if (project.isCompleted)
-                                Text(
-                                  'Completed',
-                                  style: TextStyle(
-                                    color: Theme.of(
-                                      context,
-                                    ).colorScheme.primary,
-                                  ),
-                                ),
-                            ],
-                          ),
-                          subtitle: Text(
-                            '${project.category ?? 'No category'} · '
-                            '${project.importance == null ? 'No priority' : 'Priority ${project.importance}/5'}\n'
-                            '${_periodLabel(project)}',
-                            maxLines: widget.preview ? 2 : null,
-                            overflow: widget.preview
-                                ? TextOverflow.ellipsis
-                                : null,
-                          ),
-                          isThreeLine: true,
-                          trailing: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              IconButton(
-                                tooltip: 'Logbook',
-                                icon: const Icon(Icons.menu_book_outlined),
-                                onPressed: () =>
-                                    Navigator.of(context).push<void>(
-                                      MaterialPageRoute(
-                                        builder: (_) => _ProjectLogbookPage(
-                                          projectName: project.name,
-                                          logbook: project.logbook,
-                                        ),
-                                      ),
-                                    ),
-                              ),
-                              IconButton(
-                                tooltip: 'Project overview',
-                                icon: const Icon(Icons.info_outline),
-                                onPressed: () =>
-                                    Navigator.of(context).push<void>(
-                                      MaterialPageRoute(
-                                        builder: (_) => _ProjectOverviewPage(
-                                          project: project,
-                                        ),
-                                      ),
-                                    ),
-                              ),
-                              PopupMenuButton<String>(
-                                tooltip: 'Project actions',
-                                onSelected: (action) async {
-                                  // --- FIX: This is now a reversible toggle ---
-                                  if (action == 'toggle_complete') {
-                                    widget.projects.update(
-                                      project.withCompleted(!project.completed),
-                                    );
-                                  } else if (action == 'delete') {
-                                    if (await _confirmDelete(
-                                          context,
-                                          project,
-                                        ) &&
-                                        mounted) {
-                                      widget.projects.remove(project);
-                                    }
-                                  }
-                                },
-                                itemBuilder: (_) => [
-                                  // --- FIX: Dynamic text based on current completion status ---
-                                  PopupMenuItem(
-                                    value: 'toggle_complete',
-                                    child: Text(project.isCompleted ? 'Mark as incomplete' : 'Mark as completed'),
-                                  ),
-                                  const PopupMenuItem(
-                                    value: 'delete',
-                                    child: Text('Delete project'),
-                                  ),
-                                ],
-                              ),
-                            ],
-                          ),
+                        child: InkWell(
                           onTap: () => widget.onProjectTap(project),
+                          child: Padding(
+                            padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    if (firstLogImage != null) ...[
+                                      ClipRRect(
+                                        borderRadius: BorderRadius.circular(6),
+                                        child: Image.memory(
+                                          firstLogImage,
+                                          width: 28,
+                                          height: 28,
+                                          fit: BoxFit.cover,
+                                          errorBuilder: (_, error, stack) =>
+                                              const Icon(Icons.image_outlined),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 8),
+                                    ],
+                                    Expanded(
+                                      child: Text(
+                                        project.name,
+                                        maxLines: widget.preview ? 1 : null,
+                                        overflow: widget.preview
+                                            ? TextOverflow.ellipsis
+                                            : null,
+                                        style: const TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                    ),
+                                    if (project.isCompleted)
+                                      const Padding(
+                                        padding: EdgeInsets.only(left: 8),
+                                        child: Text(
+                                          'Completed',
+                                          style: TextStyle(fontSize: 11),
+                                        ),
+                                      ),
+                                  ],
+                                ),
+                                const SizedBox(height: 8),
+                                Text(
+                                  '${project.category ?? 'No category'} · '
+                                  '${project.importance == null ? 'No priority' : 'Priority ${project.importance}/5'}\n'
+                                  '${_periodLabel(project)}',
+                                  style: Theme.of(context).textTheme.bodySmall,
+                                  maxLines: widget.preview ? 2 : null,
+                                  overflow: widget.preview
+                                      ? TextOverflow.ellipsis
+                                      : null,
+                                ),
+                                if (widget.preview)
+                                  const Spacer()
+                                else
+                                  const SizedBox(height: 4),
+                                Row(
+                                  mainAxisSize: MainAxisSize.max,
+                                  mainAxisAlignment: MainAxisAlignment.end,
+                                  children: [
+                                    IconButton(
+                                      tooltip: 'Logbook',
+                                      icon: const Icon(
+                                        Icons.menu_book_outlined,
+                                      ),
+                                      onPressed: () =>
+                                          Navigator.of(context).push<void>(
+                                            MaterialPageRoute(
+                                              builder: (_) =>
+                                                  _ProjectLogbookPage(
+                                                    projectName: project.name,
+                                                    logbook: project.logbook,
+                                                  ),
+                                            ),
+                                          ),
+                                    ),
+                                    IconButton(
+                                      tooltip: 'Project overview',
+                                      icon: const Icon(Icons.info_outline),
+                                      onPressed: () =>
+                                          Navigator.of(context).push<void>(
+                                            MaterialPageRoute(
+                                              builder: (_) =>
+                                                  _ProjectOverviewPage(
+                                                    project: project,
+                                                  ),
+                                            ),
+                                          ),
+                                    ),
+                                    PopupMenuButton<String>(
+                                      tooltip: 'Project actions',
+                                      onSelected: (action) async {
+                                        if (action == 'toggle_complete') {
+                                          widget.projects.update(
+                                            project.withCompleted(
+                                              !project.completed,
+                                            ),
+                                          );
+                                        } else if (action == 'delete') {
+                                          if (await _confirmDelete(
+                                                context,
+                                                project,
+                                              ) &&
+                                              mounted) {
+                                            widget.projects.remove(project);
+                                          }
+                                        }
+                                      },
+                                      itemBuilder: (_) => [
+                                        PopupMenuItem(
+                                          value: 'toggle_complete',
+                                          child: Text(
+                                            project.isCompleted
+                                                ? 'Mark as incomplete'
+                                                : 'Mark as completed',
+                                          ),
+                                        ),
+                                        const PopupMenuItem(
+                                          value: 'delete',
+                                          child: Text('Delete project'),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
                         ),
                       );
                     },
@@ -1045,11 +1139,17 @@ class _ProjectOverviewPage extends StatelessWidget {
       return order != 0
           ? order
           : project.logbook.entries
-              .indexOf(a)
-              .compareTo(project.logbook.entries.indexOf(b));
+                .indexOf(a)
+                .compareTo(project.logbook.entries.indexOf(b));
     });
     return Scaffold(
-      appBar: AppBar(title: const Text('Project Overview', style: TextStyle(fontWeight: FontWeight.bold)),backgroundColor: const Color.fromARGB(0, 0, 0, 0),),
+      appBar: AppBar(
+        title: const Text(
+          'Project Overview',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
+        backgroundColor: const Color.fromARGB(0, 0, 0, 0),
+      ),
 
       body: SafeArea(
         child: ListView(
@@ -1086,7 +1186,7 @@ class _ProjectOverviewPage extends StatelessWidget {
               project.category ?? 'No category selected',
             ),
             _info(context, 'Created', _formatDate(project.createdAt)),
-            
+
             const SizedBox(height: 24),
             Text(
               'Recent logbook entries',
@@ -1210,7 +1310,10 @@ class _ProjectDetailsPageState extends State<_ProjectDetailsPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.project == null ? 'New project' : 'Edit project',style:TextStyle(fontWeight: FontWeight.bold) ),
+        title: Text(
+          widget.project == null ? 'New project' : 'Edit project',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
         backgroundColor: const Color.fromARGB(0, 0, 0, 0),
         actions: [
           if (widget.project != null)
@@ -1243,7 +1346,9 @@ class _ProjectDetailsPageState extends State<_ProjectDetailsPage> {
                           ? Icons.check_circle
                           : Icons.check_circle_outline,
                     ),
-                    label: Text(_completed ? 'Mark as incomplete' : 'Mark as completed'),
+                    label: Text(
+                      _completed ? 'Mark as incomplete' : 'Mark as completed',
+                    ),
                     onPressed: () {
                       setState(() => _completed = !_completed);
                     },
@@ -1272,7 +1377,7 @@ class _ProjectDetailsPageState extends State<_ProjectDetailsPage> {
                 border: OutlineInputBorder(),
               ),
             ),
-            
+
             const SizedBox(height: 24),
             Card(
               clipBehavior: Clip.antiAlias,
