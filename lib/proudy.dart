@@ -204,19 +204,26 @@ class _ProudyPageState extends State<ProudyPage> {
                 ),
               ),
               clipBehavior: Clip.antiAlias,
-              child: const ExpansionTile(
-                leading: Icon(Icons.lightbulb_outline),
-                title: Text(
+              child: ExpansionTile(
+                leading: const Icon(Icons.lightbulb_outline),
+                title: const Text(
                   'Recommendations',
                   style: TextStyle(fontWeight: FontWeight.bold),
                 ),
-                subtitle: Text('Click to expand'),
-                children: [
-                  ListTile(title: Text('Example 1')),
-                  ListTile(title: Text('Example 2')),
-                  ListTile(title: Text('Example 3')),
-                  ListTile(title: Text('Example 4')),
-                  ListTile(title: Text('Example 5')),
+                subtitle: const Text('Click to expand'),
+                children: _selectedType == 'Memory'
+                    ? const [
+                        ListTile(title: Text('Went out with friends')),
+                        ListTile(title: Text('Trip')),
+                        ListTile(title: Text('Went to an event')),
+                        ListTile(title: Text('Funny little thing that happened today')),
+                      ]
+                    : const [
+                  ListTile(title: Text('Sports activity')),
+                  ListTile(title: Text('Helped someone')),
+                  ListTile(title: Text('Got a compliment')),
+                  ListTile(title: Text('Achieved a goal')),
+                  ListTile(title: Text('Tried something new')),
                 ],
               ),
             ),
