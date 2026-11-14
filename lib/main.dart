@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'add.dart';
 
 void main() {
   runApp(const HackathonApp());
@@ -24,11 +25,11 @@ class MainScreen extends StatelessWidget {
   const MainScreen({super.key});
 
   void _handleTap(BuildContext context, String buttonName) {
-    ScaffoldMessenger.of(context).clearSnackBars();
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('$buttonName tapped!'),
-        duration: const Duration(seconds: 1),
+    
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => TexttInput(),
       ),
     );
   }
