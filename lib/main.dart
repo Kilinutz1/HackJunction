@@ -1,156 +1,35 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
-  runApp(const MyApp());
+  runApp(const HackathonApp());
 }
 
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+class HackathonApp extends StatelessWidget {
+  const HackathonApp({super.key});
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Beautiful Comments',
+      title: 'Hackathon App',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
-        brightness: Brightness.dark,
-        primaryColor: Colors.deepPurpleAccent,
-        scaffoldBackgroundColor: const Color(0xFF121212),
-        colorScheme: ColorScheme.dark(
-          primary: Colors.deepPurpleAccent,
-          secondary: Colors.tealAccent,
-          surface: Colors.grey.shade900,
-        ),
-        cardTheme: CardThemeData( // Updated for newer Flutter versions
-          elevation: 4,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        ),
-        floatingActionButtonTheme: const FloatingActionButtonThemeData(
-          backgroundColor: Colors.deepPurpleAccent,
-          foregroundColor: Colors.white,
-        ),
-      ),
-      home: const CommentScreen(),
+      scaffoldBackgroundColor: Colors.grey[200], // Change to any color you want
+      ),      
+      home: const MainScreen(),
     );
   }
 }
 
-class CommentScreen extends StatefulWidget {
-  const CommentScreen({super.key});
+class MainScreen extends StatelessWidget {
+  const MainScreen({super.key});
 
-  @override
-  State<CommentScreen> createState() => _CommentScreenState();
-}
-
-class _CommentScreenState extends State<CommentScreen> {
-  List _comments = [];
-  final TextEditingController _textController = TextEditingController();
-
-  @override
-  void initState() {
-    super.initState();
-    _loadComments();
-  }
-
-  @override
-  void dispose() {
-    _textController.dispose();
-    super.dispose();
-  }
-
-  // LOAD DATA: Safely decodes JSON into strict Dart maps
-  Future<void> _loadComments() async {
-    final prefs = await SharedPreferences.getInstance();
-    final List<String>? savedData = prefs.getStringList('my_comments_v2');
-    
-    if (savedData != null) {
-      setState(() {
-        _comments = savedData.map((item) {
-          final decoded = jsonDecode(item) as Map;
-          return Map<String, dynamic>.from(decoded); // Prevents list casting errors
-        }).toList();
-      });
-    }
-  }
-
-  // SAVE DATA
-  Future<void> _saveComments() async {
-    final prefs = await SharedPreferences.getInstance();
-    final List<String> dataToSave = 
-        _comments.map((item) => jsonEncode(item)).toList();
-    await prefs.setStringList('my_comments_v2', dataToSave);
-  }
-
-  // DELETE DATA
-  void _deleteComment(int index) {
-    setState(() {
-      _comments.removeAt(index);
-    });
-    _saveComments();
-  }
-
-  // TIMESTAMP GENERATOR
-  String _getCurrentTimestamp() {
-    final now = DateTime.now();
-    return "${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')} at ${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}";
-  }
-
-  // DIALOG POPUP
-  void _showAddCommentDialog() {
-    showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          title: const Text('New Comment', style: TextStyle(fontWeight: FontWeight.bold)),
-          content: TextField(
-            controller: _textController,
-            autofocus: true,
-            maxLines: 3,
-            minLines: 1,
-            decoration: InputDecoration(
-              hintText: 'What\'s on your mind?',
-              filled: true,
-              fillColor: Colors.black12,
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide.none,
-              ),
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                _textController.clear();
-                Navigator.pop(context);
-              },
-              child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
-            ),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              ),
-              onPressed: () {
-                if (_textController.text.trim().isNotEmpty) {
-                  setState(() {
-                    _comments.insert(0, {
-                      'text': _textController.text.trim(),
-                      'date': _getCurrentTimestamp(),
-                    });
-                  });
-                  _saveComments();
-                  
-                  _textController.clear();
-                  Navigator.pop(context);
-                }
-              },
-              child: const Text('Post'),
-            ),
-          ],
-        );
-      },
+  void _handleTap(BuildContext context, String buttonName) {
+    ScaffoldMessenger.of(context).clearSnackBars();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('$buttonName tapped!'),
+        duration: const Duration(seconds: 1),
+      ),
     );
   }
 
@@ -158,81 +37,154 @@ class _CommentScreenState extends State<CommentScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('My Thoughts', style: TextStyle(fontWeight: FontWeight.w600)),
         centerTitle: true,
-        elevation: 0,
         backgroundColor: Colors.transparent,
+        elevation: 0,
       ),
-      body: _comments.isEmpty
-          ? _buildEmptyState()
-          : ListView.builder(
-              padding: const EdgeInsets.only(bottom: 80, top: 8),
-              itemCount: _comments.length,
+      body: Column(
+        children: [
+          // 1. The Scrollable Row of RemindWidgets
+          SizedBox(
+            height: 100,
+            child: ListView.builder(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 8.0),
+              itemCount: 10,
               itemBuilder: (context, index) {
-                final comment = _comments[index];
-                return _buildCommentCard(comment, index);
+                return RemindWidget(index: index);
               },
             ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: _showAddCommentDialog,
-        icon: const Icon(Icons.edit),
-        label: const Text('Write'),
-      ),
-    );
-  }
-
-  Widget _buildEmptyState() {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(Icons.speaker_notes_off, size: 80, color: Colors.grey.shade800),
-          const SizedBox(height: 16),
-          Text(
-            "It's quiet in here.",
-            style: TextStyle(fontSize: 20, color: Colors.grey.shade500),
           ),
+          
           const SizedBox(height: 8),
-          Text(
-            "Tap 'Write' to add your first thought.",
-            style: TextStyle(color: Colors.grey.shade600),
+
+          // 2. The Button Grid
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.all(12.0),
+              child: Column(
+                // This stretches the buttons horizontally to fill the screen width
+                crossAxisAlignment: CrossAxisAlignment.stretch, 
+                children: [
+                  // Top Row: 2 Thin Split Buttons
+                  Row(
+                    children: [
+                      Expanded(
+                        child: KahootButton(
+                          height: 80, // Set specific height here
+                          color: Colors.redAccent,
+                          label: 'Favorites',
+                          onTap: () => _handleTap(context, 'favorites'),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: KahootButton(
+                          height: 80, // Set specific height here
+                          color: Colors.blueAccent,
+                          label: 'Projects',
+                          onTap: () => _handleTap(context, 'projects'),
+                        ),
+                      ),
+                    ],
+                  ),
+                
+                  const SizedBox(height: 12), 
+                  
+                  // Middle Button: Given a specific height
+                  KahootButton(
+                    height: 200, // You can specify any exact Y-direction size here
+                    color: Colors.orangeAccent,
+                    label: 'Add Memory',
+                    onTap: () => _handleTap(context, 'Add'),
+                  ),
+                  
+                  const SizedBox(height: 12), 
+                  
+                  // Last Button: Wrapped in Expanded to fill up all remaining vertical space
+                  Expanded(
+                    child: KahootButton(
+                      color: Colors.greenAccent,
+                      label: 'My Memories',
+                      onTap: () => _handleTap(context, 'My Memories'),
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ),
         ],
       ),
     );
   }
+}
 
-  Widget _buildCommentCard(Map<String, dynamic> comment, int index) {
-    return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  child: Text(
-                    comment['text'] ?? '',
-                    style: const TextStyle(fontSize: 16, height: 1.4),
-                  ),
-                ),
-                IconButton(
-                  icon: const Icon(Icons.delete_outline, color: Colors.redAccent),
-                  onPressed: () => _deleteComment(index),
-                  constraints: const BoxConstraints(),
-                  padding: EdgeInsets.zero,
-                ),
-              ],
+// ---------------------------------------------------------
+// COMPONENT: Stateless RemindWidget
+// ---------------------------------------------------------
+class RemindWidget extends StatelessWidget {
+  final int index;
+  
+  const RemindWidget({super.key, required this.index});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 80,
+      margin: const EdgeInsets.symmetric(horizontal: 4.0, vertical: 8.0),
+      decoration: BoxDecoration(
+        color: const Color.fromARGB(255, 117, 113, 113),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Center(
+        child: Text(
+          'Task\n${index + 1}',
+          textAlign: TextAlign.center,
+          style: const TextStyle(fontWeight: FontWeight.w500),
+        ),
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------
+// COMPONENT: Kahoot-style Action Button
+// ---------------------------------------------------------
+class KahootButton extends StatelessWidget {
+  final Color color;
+  final String label;
+  final VoidCallback onTap;
+  final double? height; // Added height property
+
+  const KahootButton({
+    super.key,
+    required this.color,
+    required this.label,
+    required this.onTap,
+    this.height, // Allow it to be passed in
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: height, // Applies the exact height if provided, otherwise fills space
+      child: Material(
+        color: color,
+        borderRadius: BorderRadius.circular(12),
+        elevation: 4,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(12),
+          child: Center(
+            child: Text(
+              label,
+              style: const TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+              ),
             ),
-            const SizedBox(height: 12),
-            Text(
-              comment['date'] ?? '',
-              style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
-            ),
-          ],
+          ),
         ),
       ),
     );
