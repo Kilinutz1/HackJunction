@@ -1,8 +1,7 @@
+import 'stored_image.dart';
 import 'app_theme.dart';
-import 'dart:io';
 import 'dart:math';
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
 import 'localdb.dart';
 import 'event.dart';
 import 'dart:convert';
@@ -69,7 +68,8 @@ class RewindListWidgetState extends State<RewindListWidget> {
 
     if (eligibleProjects.isNotEmpty) {
       // 2. Wähle EIN zufälliges Projekt aus
-      final selectedProject = eligibleProjects[random.nextInt(eligibleProjects.length)];
+      final selectedProject =
+          eligibleProjects[random.nextInt(eligibleProjects.length)];
 
       List<Event> projectEvents = [];
 
@@ -82,7 +82,7 @@ class RewindListWidgetState extends State<RewindListWidget> {
       for (var entry in sortedEntries) {
         projectEvents.add(
           Event(
-            id: entry.id, 
+            id: entry.id,
             type: 'Project Spotlight',
             // Zeigt den Projektnamen + den Text des Eintrags an
             description: '${selectedProject.name}:\n${entry.text}',
@@ -100,10 +100,10 @@ class RewindListWidgetState extends State<RewindListWidget> {
         finalGroups['Project Spotlight'] = projectEvents.take(10).toList();
       }
     }
-    
+
     projectStore.dispose();
     // ------------------------------------------
-    
+
     if (!mounted) return;
 
     setState(() {
@@ -255,21 +255,7 @@ class SingleRewindWidget extends StatelessWidget {
           fit: StackFit.expand,
           children: [
             if (hasPicture)
-              // --- FIX: ZUERST prüfen, ob es Base64 ist, EGAL ob Web oder Handy ---
-              coverEvent.pictureUrl!.startsWith('base64:')
-                  ? Image.memory(
-                      base64Decode(coverEvent.pictureUrl!.substring(7)),
-                      fit: BoxFit.cover,
-                    )
-                  : (kIsWeb
-                      ? Image.network(
-                          coverEvent.pictureUrl!,
-                          fit: BoxFit.cover,
-                        )
-                      : Image.file(
-                          File(coverEvent.pictureUrl!),
-                          fit: BoxFit.cover,
-                        ))
+              StoredImage(source: coverEvent.pictureUrl!, fit: BoxFit.cover)
             else
               Container(
                 decoration: BoxDecoration(
@@ -389,21 +375,10 @@ class _StoryViewerScreenState extends State<StoryViewerScreen> {
                 width: double.infinity,
                 height: double.infinity,
                 child: hasPicture
-                    // --- FIX: Auch hier die Reihenfolge der Überprüfung angepasst ---
-                    ? (currentEvent.pictureUrl!.startsWith('base64:')
-                        ? Image.memory(
-                            base64Decode(currentEvent.pictureUrl!.substring(7)),
-                            fit: BoxFit.contain,
-                          )
-                        : (kIsWeb
-                            ? Image.network(
-                                currentEvent.pictureUrl!,
-                                fit: BoxFit.contain,
-                              )
-                            : Image.file(
-                                File(currentEvent.pictureUrl!),
-                                fit: BoxFit.contain,
-                              )))
+                    ? StoredImage(
+                        source: currentEvent.pictureUrl!,
+                        fit: BoxFit.contain,
+                      )
                     : Container(
                         decoration: BoxDecoration(
                           gradient: LinearGradient(

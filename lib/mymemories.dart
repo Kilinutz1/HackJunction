@@ -1,11 +1,9 @@
+import 'stored_image.dart';
 import 'app_theme.dart';
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'localdb.dart';
 import 'event.dart';
 import 'proudy.dart'; // Make sure this matches your file name!
-import 'package:flutter/foundation.dart' show kIsWeb;
-import 'dart:convert';
 
 class MyMemoriesPage extends StatefulWidget {
   final bool initialShowFavoritesOnly;
@@ -265,35 +263,25 @@ class _MyMemoriesPageState extends State<MyMemoriesPage> {
           // 1. The Image (Only shows if a pictureUrl exists)
           if (event.pictureUrl != null && event.pictureUrl!.isNotEmpty)
             Padding(
-            padding: const EdgeInsets.only(top: 16.0, left: 16.0, right: 16.0),
-            child: Center(
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(
-                  maxHeight:
-                      250, // Prevents tall photos from taking over the screen
-                ),
-                child: kIsWeb
-                    ? (event.pictureUrl!.startsWith('base64:')
-                          ? Image.memory(
-                              base64Decode(event.pictureUrl!.substring(7)),
-                              fit: BoxFit.contain,
-                              errorBuilder: (context, error, stackTrace) =>
-                                  _buildImageError(),
-                            )
-                          : Image.network(
-                              event.pictureUrl!,
-                              fit: BoxFit.contain,
-                              errorBuilder: (context, error, stackTrace) =>
-                                  _buildImageError(),
-                            ))
-                    : Image.file(
-                        File(event.pictureUrl!),
-                        fit: BoxFit.contain,
-                        errorBuilder: (context, error, stackTrace) =>
-                            _buildImageError(),
-                      ),
+              padding: const EdgeInsets.only(
+                top: 16.0,
+                left: 16.0,
+                right: 16.0,
               ),
-            )),
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(
+                    maxHeight:
+                        250, // Prevents tall photos from taking over the screen
+                  ),
+                  child: StoredImage(
+                    source: event.pictureUrl!,
+                    fit: BoxFit.contain,
+                    errorBuilder: (context, error, stack) => _buildImageError(),
+                  ),
+                ),
+              ),
+            ),
 
           Padding(
             padding: const EdgeInsets.all(16.0),

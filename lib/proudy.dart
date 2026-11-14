@@ -1,10 +1,7 @@
+import 'stored_image.dart';
 import 'app_theme.dart';
-import 'dart:io';
-import 'dart:convert'; // NEW: Required for Base64 encoding
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
-import 'package:path_provider/path_provider.dart'; // NEW: For permanent storage
 import 'localdb.dart';
 import 'event.dart';
 
@@ -66,30 +63,7 @@ class _ProudyPageState extends State<ProudyPage> {
   Future<String?> _saveImageToPermanentStorage(String? tempPath) async {
     if (tempPath == null || tempPath.isEmpty) return null;
 
-    // --- NEW: WEB HYBRID STORAGE (Base64) ---
-    if (kIsWeb) {
-      try {
-        // Read the temporary browser file and convert it to a permanent text string
-        final bytes = await XFile(tempPath).readAsBytes();
-        final base64String = base64Encode(bytes);
-        return 'base64:$base64String'; // We add 'base64:' so the app knows how to read it later
-      } catch (e) {
-        debugPrint("Error encoding web image: $e");
-        return tempPath;
-      }
-    }
-
-    // --- MOBILE PERMANENT STORAGE (Unchanged) ---
-    try {
-      final directory = await getApplicationDocumentsDirectory();
-      final fileName = 'memory_${DateTime.now().millisecondsSinceEpoch}.jpg';
-      final permanentPath = '${directory.path}/$fileName';
-      final newFile = await File(tempPath).copy(permanentPath);
-      return newFile.path;
-    } catch (e) {
-      debugPrint("Error saving mobile image: $e");
-      return tempPath;
-    }
+    return ImageStorage().save(tempPath);
   }
 
   Future<void> _saveEvent() async {
@@ -102,10 +76,19 @@ class _ProudyPageState extends State<ProudyPage> {
 
     String? finalImagePath = _selectedImagePath;
 
-    // If we picked a NEW image (or this is a brand new event), copy it to permanent storage
-    if (widget.existingEvent == null ||
-        widget.existingEvent!.pictureUrl != _selectedImagePath) {
-      finalImagePath = await _saveImageToPermanentStorage(_selectedImagePath);
+    try {
+      if (widget.existingEvent == null ||
+          widget.existingEvent!.pictureUrl != _selectedImagePath) {
+        finalImagePath = await _saveImageToPermanentStorage(_selectedImagePath);
+      }
+    } catch (_) {
+      if (mounted)
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Could not save your picture. Please try again.'),
+          ),
+        );
+      return;
     }
 
     final db = LocalDatabase();
@@ -351,22 +334,10 @@ class _ProudyPageState extends State<ProudyPage> {
                       constraints: const BoxConstraints(maxHeight: 200),
                       child: ClipRRect(
                         borderRadius: BorderRadius.circular(12),
-                        child: kIsWeb
-                            ? (_selectedImagePath!.startsWith('base64:')
-                                  ? Image.memory(
-                                      base64Decode(
-                                        _selectedImagePath!.substring(7),
-                                      ),
-                                      fit: BoxFit.contain,
-                                    )
-                                  : Image.network(
-                                      _selectedImagePath!,
-                                      fit: BoxFit.contain,
-                                    ))
-                            : Image.file(
-                                File(_selectedImagePath!),
-                                fit: BoxFit.contain,
-                              ),
+                        child: StoredImage(
+                          source: _selectedImagePath!,
+                          fit: BoxFit.contain,
+                        ),
                       ),
                     ),
                   ),

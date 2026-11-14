@@ -1,5 +1,4 @@
-import 'dart:convert';
-import 'dart:io';
+import 'stored_image.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'event.dart';
@@ -352,38 +351,13 @@ class _ReportPhoto extends StatelessWidget {
       color: Theme.of(context).colorScheme.primaryContainer,
       child: const Center(child: Icon(Icons.image_not_supported_outlined)),
     );
-    Widget image;
-    try {
-      if (bytes != null) {
-        image = Image.memory(
-          bytes!,
-          fit: BoxFit.cover,
-          errorBuilder: (_, _, _) => fallback(),
-        );
-      } else if (source!.startsWith('base64:')) {
-        image = Image.memory(
-          base64Decode(source!.substring(7)),
-          fit: BoxFit.cover,
-          errorBuilder: (_, _, _) => fallback(),
-        );
-      } else if (kIsWeb ||
-          source!.startsWith('https://') ||
-          source!.startsWith('http://')) {
-        image = Image.network(
-          source!,
-          fit: BoxFit.cover,
-          errorBuilder: (_, _, _) => fallback(),
-        );
-      } else {
-        image = Image.file(
-          File(source!),
-          fit: BoxFit.cover,
-          errorBuilder: (_, _, _) => fallback(),
-        );
-      }
-    } catch (_) {
-      image = fallback();
-    }
+    final image = bytes != null
+        ? Image.memory(
+            bytes!,
+            fit: BoxFit.cover,
+            errorBuilder: (_, _, _) => fallback(),
+          )
+        : StoredImage(source: source!, errorBuilder: (_, _, _) => fallback());
     return ClipRRect(
       borderRadius: BorderRadius.circular(12),
       child: SizedBox(height: 180, width: double.infinity, child: image),
