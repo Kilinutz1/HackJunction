@@ -213,17 +213,17 @@ class _ProudyPageState extends State<ProudyPage> {
                 subtitle: const Text('Click to expand'),
                 children: _selectedType == 'Memory'
                     ? const [
-                        ListTile(title: Text('Went out with friends')),
-                        ListTile(title: Text('Trip')),
-                        ListTile(title: Text('Went to an event')),
-                        ListTile(title: Text('Funny little thing that happened today')),
+                        ListTile(title: Text('Did you meet some friends/family today?')),
+                        ListTile(title: Text('A nice trip/vacation you don\'t want to forget?')),
+                        ListTile(title: Text('Did you go to a nice event recently?')),
+                        ListTile(title: Text('Did some funny little thing happen today?')),
                       ]
                     : const [
-                  ListTile(title: Text('Sports activity')),
-                  ListTile(title: Text('Helped someone')),
-                  ListTile(title: Text('Got a compliment')),
-                  ListTile(title: Text('Achieved a goal')),
-                  ListTile(title: Text('Tried something new')),
+                  ListTile(title: Text('Did you do any sports/outdoor activity?')),
+                  ListTile(title: Text('Were you able to help someone?')),
+                  ListTile(title: Text('Maybe you got a nice compliment?')),
+                  ListTile(title: Text('Did you achieve a goal or make progress towards one?')),
+                  ListTile(title: Text('Did you try something new?')),
                 ],
               ),
             ),

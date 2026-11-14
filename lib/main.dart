@@ -3,6 +3,7 @@ import 'proudy.dart';
 import 'mymemories.dart';
 import 'project.dart';
 import 'remind.dart';
+import 'streak.dart';
 
 void main() {
   runApp(const HackathonApp());
@@ -64,6 +65,12 @@ class MainScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        actions: const [
+          Padding(
+            padding: EdgeInsets.only(right: 8),
+            child: StreakBadge(),
+          ),
+        ],
         centerTitle: true,
         backgroundColor: Colors.transparent,
         elevation: 0,
