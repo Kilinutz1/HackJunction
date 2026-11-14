@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'localdb.dart';
 import 'event.dart';
 import 'dart:convert';
+import 'package:audioplayers/audioplayers.dart';
 
 // ---------------------------------------------------------
 // 1. THE LIST WIDGET (The Horizontal Dashboard Cards)
@@ -125,7 +126,7 @@ class _RewindListWidgetState extends State<RewindListWidget> {
           final eventsList = _groupedEvents[type]!;
           
           // Assign simulated music track
-          final musicTrack = type == 'Proud Moment' ? 'upbeat_triumph.mp3' : 'lofi_chill.mp3';
+          final musicTrack = type == 'Proud Moment' ? 'funky.m4a' : 'lofty.m4a';
 
           return SingleRewindWidget(
             title: type,
@@ -260,41 +261,49 @@ class StoryViewerScreen extends StatefulWidget {
 
 class _StoryViewerScreenState extends State<StoryViewerScreen> {
   int _currentIndex = 0;
+  
+  // 1. Create the Audio Player
+  final AudioPlayer _audioPlayer = AudioPlayer();
 
   @override
   void initState() {
     super.initState();
-    // Simulate music playing when the story opens
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Playing $widget.title playlist: ${widget.musicTrack} 🎵'),
-          duration: const Duration(seconds: 2),
-        ),
-      );
-    });
+    _startMusic();
+  }
+
+  // 2. Play the music!
+  Future<void> _startMusic() async {
+    // Tell the player to loop the song seamlessly
+    await _audioPlayer.setReleaseMode(ReleaseMode.loop);
+    
+    // Play the specific track passed in from the RewindListWidget
+    // Note: AssetSource automatically looks inside the 'assets' folder!
+    await _audioPlayer.play(AssetSource(widget.musicTrack));
+  }
+
+  // 3. Stop the music when the user closes the story
+  @override
+  void dispose() {
+    _audioPlayer.dispose(); // Kills the audio instantly
+    super.dispose();
   }
 
   void _onTap(TapUpDetails details) {
     final screenWidth = MediaQuery.of(context).size.width;
     final dx = details.globalPosition.dx;
 
-    // If they tapped the left third of the screen, go back
     if (dx < screenWidth / 3) {
       setState(() {
         if (_currentIndex > 0) {
           _currentIndex--;
         }
       });
-    } 
-    // If they tapped the right side, go forward
-    else {
+    } else {
       setState(() {
         if (_currentIndex < widget.events.length - 1) {
           _currentIndex++;
         } else {
-          // If at the end, close the story!
-          Navigator.pop(context);
+          Navigator.pop(context); // Closes story (which triggers dispose() and stops music)
         }
       });
     }
@@ -308,11 +317,11 @@ class _StoryViewerScreenState extends State<StoryViewerScreen> {
     return Scaffold(
       backgroundColor: Colors.black,
       body: GestureDetector(
-        onTapUp: _onTap, // Detects exactly where the user tapped
+        onTapUp: _onTap, 
         child: Stack(
           fit: StackFit.expand,
           children: [
-            // 1. The Background (Picture or Cool Text-only gradient)
+            // 1. The Background
             AnimatedSwitcher(
               duration: const Duration(milliseconds: 400),
               child: SizedBox(
@@ -337,7 +346,7 @@ class _StoryViewerScreenState extends State<StoryViewerScreen> {
               ),
             ),
 
-            // 2. Dark Overlay for readability
+            // 2. Dark Overlay
             Container(
               decoration: const BoxDecoration(
                 gradient: LinearGradient(
@@ -349,7 +358,7 @@ class _StoryViewerScreenState extends State<StoryViewerScreen> {
               ),
             ),
 
-            // 3. The Story Bars at the top (Instagram style progress indicators)
+            // 3. Story Bars
             Positioned(
               top: 40,
               left: 10,
@@ -371,7 +380,7 @@ class _StoryViewerScreenState extends State<StoryViewerScreen> {
               ),
             ),
 
-            // 4. Header Text (Title and Close Button)
+            // 4. Header
             Positioned(
               top: 55,
               left: 16,
@@ -391,7 +400,7 @@ class _StoryViewerScreenState extends State<StoryViewerScreen> {
               ),
             ),
 
-            // 5. The Memory Text and Date at the bottom
+            // 5. Text
             Positioned(
               bottom: 40,
               left: 20,
