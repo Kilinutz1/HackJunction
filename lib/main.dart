@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart'; // Make sure this is imported
+
 import 'proudy.dart';
 import 'mymemories.dart';
 import 'project.dart';
 import 'remind.dart';
 import 'streak.dart';
+import 'breath.dart';
 
 void main() {
   runApp(const HackathonApp());
@@ -18,15 +21,62 @@ class HackathonApp extends StatelessWidget {
       title: 'Hackathon App',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
-      scaffoldBackgroundColor: Colors.grey[200], // Change to any color you want
+        scaffoldBackgroundColor: Colors.grey[200], 
       ),      
       home: const MainScreen(),
     );
   }
 }
 
-class MainScreen extends StatelessWidget {
+// 1. Changed to StatefulWidget to handle lifecycle and startup checks
+class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
+
+  @override
+  State<MainScreen> createState() => _MainScreenState();
+}
+
+class _MainScreenState extends State<MainScreen> {
+
+  @override
+  void initState() {
+    super.initState();
+    // 2. Run the check right after the first frame builds
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _checkDailyVisit();
+    });
+  }
+
+  // 3. The logic to check if they visited today
+  Future<void> _checkDailyVisit() async {
+    final prefs = await SharedPreferences.getInstance();
+    final now = DateTime.now();
+    // Using your existing dayKey format from StreakService
+    final todayStr = StreakService.dayKey(now); 
+    final lastVisit = prefs.getString('last_visit_date');
+
+    if (lastVisit != todayStr) {
+      // It's a new day! Save today's date so it doesn't trigger again today
+      await prefs.setString('last_visit_date', todayStr);
+      
+      if (!mounted) return;
+
+      // Force navigation to the breathe screen
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => BreatheScreen(
+            durationInSeconds: 12, // Set to however long you want them to breathe
+            onComplete: () {
+              // 4. Increase the streak when they finish breathing!
+              StreakService().recordActivity(); 
+              Navigator.pop(context);
+            },
+          ),
+        ),
+      );
+    }
+  }
 
   void _handleTap(BuildContext context, String buttonName) {
     if (buttonName == 'projects') {
@@ -35,7 +85,7 @@ class MainScreen extends StatelessWidget {
         MaterialPageRoute(builder: (context) => const ProjectsPage()),
       );
     }
-    if (buttonName=="Add"){
+    if (buttonName == "Add") {
       Navigator.push(
         context,
         MaterialPageRoute(
@@ -43,7 +93,7 @@ class MainScreen extends StatelessWidget {
         ),
       );
     }
-    if (buttonName=="My Memories"){
+    if (buttonName == "My Memories") {
       Navigator.push(
         context,
         MaterialPageRoute(
@@ -51,11 +101,16 @@ class MainScreen extends StatelessWidget {
         ),
       );
     }
-    if (buttonName=="favorites"){
+    if (buttonName == "breath") {
       Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (context) => MyMemoriesPage(initialShowFavoritesOnly: true),
+          builder: (context) => BreatheScreen(
+            durationInSeconds: 0, 
+            onComplete: () {
+              Navigator.pop(context);
+            },
+          ),
         ),
       );
     }
@@ -88,24 +143,22 @@ class MainScreen extends StatelessWidget {
             child: Padding(
               padding: const EdgeInsets.all(12.0),
               child: Column(
-                // This stretches the buttons horizontally to fill the screen width
                 crossAxisAlignment: CrossAxisAlignment.stretch, 
                 children: [
-                  // Top Row: 2 Thin Split Buttons
                   Row(
                     children: [
                       Expanded(
                         child: KahootButton(
-                          height: 80, // Set specific height here
+                          height: 80, 
                           color: Colors.redAccent,
-                          label: 'Favorites',
-                          onTap: () => _handleTap(context, 'favorites'),
+                          label: 'Breathing exercise',
+                          onTap: () => _handleTap(context, 'breath'),
                         ),
                       ),
                       const SizedBox(width: 12),
                       Expanded(
                         child: KahootButton(
-                          height: 80, // Set specific height here
+                          height: 80,
                           color: Colors.blueAccent,
                           label: 'Projects',
                           onTap: () => _handleTap(context, 'projects'),
@@ -116,9 +169,8 @@ class MainScreen extends StatelessWidget {
                 
                   const SizedBox(height: 12), 
                   
-                  // Middle Button: Given a specific height
                   KahootButton(
-                    height: 200, // You can specify any exact Y-direction size here
+                    height: 200, 
                     color: Colors.orangeAccent,
                     label: 'Add Memory',
                     onTap: () => _handleTap(context, 'Add'),
@@ -126,7 +178,6 @@ class MainScreen extends StatelessWidget {
                   
                   const SizedBox(height: 12), 
                   
-                  // Last Button: Wrapped in Expanded to fill up all remaining vertical space
                   Expanded(
                     child: KahootButton(
                       color: Colors.greenAccent,
@@ -144,8 +195,6 @@ class MainScreen extends StatelessWidget {
   }
 }
 
-
-
 // ---------------------------------------------------------
 // COMPONENT: Kahoot-style Action Button
 // ---------------------------------------------------------
@@ -153,20 +202,20 @@ class KahootButton extends StatelessWidget {
   final Color color;
   final String label;
   final VoidCallback onTap;
-  final double? height; // Added height property
+  final double? height; 
 
   const KahootButton({
     super.key,
     required this.color,
     required this.label,
     required this.onTap,
-    this.height, // Allow it to be passed in
+    this.height, 
   });
 
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      height: height, // Applies the exact height if provided, otherwise fills space
+      height: height, 
       child: Material(
         color: color,
         borderRadius: BorderRadius.circular(12),
