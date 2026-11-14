@@ -16,17 +16,21 @@ class RewindListWidget extends StatefulWidget {
   const RewindListWidget({super.key});
 
   @override
-  State<RewindListWidget> createState() => _RewindListWidgetState();
+  State<RewindListWidget> createState() => RewindListWidgetState();
 }
 
-class _RewindListWidgetState extends State<RewindListWidget> {
+class RewindListWidgetState extends State<RewindListWidget> {
   Map<String, List<Event>> _groupedEvents = {};
   bool _isLoading = true;
+  Future<void>? _pendingLoad;
+
+  Future<void> refresh() =>
+      _pendingLoad ??= _loadEvents().whenComplete(() => _pendingLoad = null);
 
   @override
   void initState() {
     super.initState();
-    _loadEvents();
+    refresh();
   }
 
   Future<void> _loadEvents() async {
@@ -83,6 +87,8 @@ class _RewindListWidgetState extends State<RewindListWidget> {
       finalGroups['Project Spotlight'] = projectEvents.take(10).toList();
     }
     // ------------------------------------------
+    projectStore.dispose();
+    if (!mounted) return;
 
     setState(() {
       _groupedEvents = finalGroups;

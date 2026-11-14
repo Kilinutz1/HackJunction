@@ -66,6 +66,21 @@ class MainScreen extends StatefulWidget {
 }
 
 class _MainScreenState extends State<MainScreen> {
+  final _rewindKey = GlobalKey<RewindListWidgetState>();
+
+  Future<void> _refreshDashboard() async {
+    try {
+      await _rewindKey.currentState?.refresh();
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Could not refresh your memories. Please try again.'),
+        ),
+      );
+    }
+  }
+
   @override
   void initState() {
     super.initState();
@@ -163,76 +178,80 @@ class _MainScreenState extends State<MainScreen> {
         ],
       ),
       body: SafeArea(
-        child: ListView(
-          padding: const EdgeInsets.fromLTRB(20, 12, 20, 28),
-          children: [
-            const Row(
-              children: [
-                Text(
-                  'A LOOK BACK',
-                  style: TextStyle(
-                    fontFamily: 'Roboto',
-                    fontSize: 11,
-                    letterSpacing: 1.6,
-                    fontWeight: FontWeight.w700,
-                    color: AppPalette.muted,
+        child: RefreshIndicator(
+          onRefresh: _refreshDashboard,
+          child: ListView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: const EdgeInsets.fromLTRB(20, 12, 20, 28),
+            children: [
+              const Row(
+                children: [
+                  Text(
+                    'A LOOK BACK',
+                    style: TextStyle(
+                      fontFamily: 'Roboto',
+                      fontSize: 11,
+                      letterSpacing: 1.6,
+                      fontWeight: FontWeight.w700,
+                      color: AppPalette.muted,
+                    ),
                   ),
-                ),
-                SizedBox(width: 12),
-                Expanded(child: Divider()),
-              ],
-            ),
-            const SizedBox(height: 8),
-            const RewindListWidget(),
-            const SizedBox(height: 24),
-            KahootButton(
-              color: Theme.of(context).colorScheme.primary,
-              label: 'Add Memory',
-              height: 132,
-              onTap: () => _handleTap(context, 'Add'),
-            ),
-            const SizedBox(height: 24),
-            const Text(
-              'YOUR COLLECTION',
-              style: TextStyle(
-                fontFamily: 'Roboto',
-                fontSize: 11,
-                letterSpacing: 1.6,
-                fontWeight: FontWeight.w700,
-                color: AppPalette.muted,
+                  SizedBox(width: 12),
+                  Expanded(child: Divider()),
+                ],
               ),
-            ),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                Expanded(
-                  child: KahootButton(
-                    color: AppPalette.blush,
-                    label: 'Breathing exercise',
-                    height: 112,
-                    onTap: () => _handleTap(context, 'breath'),
-                  ),
+              const SizedBox(height: 8),
+              RewindListWidget(key: _rewindKey),
+              const SizedBox(height: 24),
+              KahootButton(
+                color: Theme.of(context).colorScheme.primary,
+                label: 'Add Memory',
+                height: 132,
+                onTap: () => _handleTap(context, 'Add'),
+              ),
+              const SizedBox(height: 24),
+              const Text(
+                'YOUR COLLECTION',
+                style: TextStyle(
+                  fontFamily: 'Roboto',
+                  fontSize: 11,
+                  letterSpacing: 1.6,
+                  fontWeight: FontWeight.w700,
+                  color: AppPalette.muted,
                 ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: KahootButton(
-                    color: Theme.of(context).colorScheme.primaryContainer,
-                    label: 'Projects',
-                    height: 112,
-                    onTap: () => _handleTap(context, 'projects'),
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: KahootButton(
+                      color: AppPalette.blush,
+                      label: 'Breathing exercise',
+                      height: 112,
+                      onTap: () => _handleTap(context, 'breath'),
+                    ),
                   ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            KahootButton(
-              color: AppPalette.surface,
-              label: 'My Memories',
-              height: 88,
-              onTap: () => _handleTap(context, 'My Memories'),
-            ),
-            const SizedBox(height: 28),
-          ],
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: KahootButton(
+                      color: Theme.of(context).colorScheme.primaryContainer,
+                      label: 'Projects',
+                      height: 112,
+                      onTap: () => _handleTap(context, 'projects'),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              KahootButton(
+                color: AppPalette.surface,
+                label: 'My Memories',
+                height: 88,
+                onTap: () => _handleTap(context, 'My Memories'),
+              ),
+              const SizedBox(height: 28),
+            ],
+          ),
         ),
       ),
     );
