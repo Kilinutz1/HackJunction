@@ -36,6 +36,118 @@ void main() {
   setUp(() => SharedPreferences.setMockInitialValues({}));
 
   for (final overview in ['start', 'all']) {
+    testWidgets('Read-only project overview is available from $overview', (
+      tester,
+    ) async {
+      tester.view.physicalSize = const Size(1000, 1400);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      final store = ProjectStore();
+      await store.load();
+      store.add(
+        Project(
+          name: 'My project',
+          description: 'My full project description',
+          importance: 4,
+          category: 'Sports',
+          logbook: ProjectLogbook([
+            for (var day = 1; day <= 5; day++)
+              ProjectLogEntry(
+                date: DateTime(2026, 1, day),
+                text: 'Progress $day',
+              ),
+          ]),
+        ),
+      );
+      await store.persist();
+      store.dispose();
+      await tester.pumpWidget(const MaterialApp(home: ProjectsPage()));
+      await tester.pumpAndSettle();
+      if (overview == 'all') {
+        await tester.tap(find.text('All projects'));
+        await tester.pumpAndSettle();
+      }
+      await tester.tap(find.byTooltip('Project overview'));
+      await tester.pumpAndSettle();
+      expect(find.text('My full project description'), findsOneWidget);
+      expect(find.text('Sports'), findsOneWidget);
+      expect(find.text('4 out of 5'), findsOneWidget);
+      expect(find.text('Incomplete'), findsOneWidget);
+      expect(find.byType(TextField), findsNothing);
+      expect(find.text('Save'), findsNothing);
+      expect(find.byTooltip('Delete project'), findsNothing);
+      await tester.ensureVisible(find.text('Progress 3'));
+      expect(find.text('Progress 5'), findsOneWidget);
+      expect(find.text('Progress 4'), findsOneWidget);
+      expect(find.text('Progress 3'), findsOneWidget);
+      expect(find.text('Progress 2'), findsNothing);
+      expect(tester.takeException(), isNull);
+    });
+  }
+
+  testWidgets('Start page fits full cards and All projects keeps scrolling', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1000, 800);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final store = ProjectStore();
+    await store.load();
+    for (var i = 1; i <= 20; i++) {
+      store.add(Project(name: 'Project $i', completed: i.isEven));
+    }
+    await store.persist();
+    store.dispose();
+    await tester.pumpWidget(const MaterialApp(home: ProjectsPage()));
+    await tester.pumpAndSettle();
+    final preview = find.byKey(const ValueKey('project-preview'));
+    final firstCount = tester.widget<ListView>(preview).semanticChildCount!;
+    expect(firstCount, greaterThan(0));
+    expect(firstCount, lessThan(20));
+    for (final card in tester.elementList(find.byType(Card))) {
+      expect(
+        tester.getBottomRight(find.byWidget(card.widget)).dy,
+        lessThanOrEqualTo(800),
+      );
+      final details = find.descendant(
+        of: find.byWidget(card.widget),
+        matching: find.textContaining('No category'),
+      );
+      expect(
+        tester.getBottomRight(details).dy,
+        lessThanOrEqualTo(tester.getBottomRight(find.byWidget(card.widget)).dy),
+      );
+    }
+    await tester.drag(preview, const Offset(0, -600));
+    await tester.pumpAndSettle();
+    expect(find.text('Project 1'), findsOneWidget);
+    expect(find.text('Project 20'), findsNothing);
+    tester.view.physicalSize = const Size(1000, 1200);
+    await tester.pumpAndSettle();
+    expect(
+      tester.widget<ListView>(preview).semanticChildCount!,
+      greaterThan(firstCount),
+    );
+    tester.view.physicalSize = const Size(390, 800);
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+    await tester.tap(find.text('All projects'));
+    await tester.pumpAndSettle();
+    final all = find.byKey(const ValueKey('all-projects-list'));
+    expect(tester.widget<ListView>(all).semanticChildCount, 20);
+    await tester.scrollUntilVisible(
+      find.text('Project 20'),
+      400,
+      scrollable: find.descendant(of: all, matching: find.byType(Scrollable)),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('Project 20'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  for (final overview in ['start', 'all']) {
     testWidgets(
       'Status filtering combines with sorting in $overview overview',
       (tester) async {
