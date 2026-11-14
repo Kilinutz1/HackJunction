@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'proudy.dart';
 import 'mymemories.dart';
 import 'project.dart';
+import 'remind.dart';
 
 void main() {
   runApp(const HackathonApp());
@@ -70,17 +71,7 @@ class MainScreen extends StatelessWidget {
       body: Column(
         children: [
           // 1. The Scrollable Row of RemindWidgets
-          SizedBox(
-            height: 140,
-            child: ListView.builder(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 8.0),
-              itemCount: 10,
-              itemBuilder: (context, index) {
-                return RemindWidget(index: index);
-              },
-            ),
-          ),
+          RewindListWidget(),
           
           const SizedBox(height: 8),
 
@@ -145,33 +136,7 @@ class MainScreen extends StatelessWidget {
   }
 }
 
-// ---------------------------------------------------------
-// COMPONENT: Stateless RemindWidget
-// ---------------------------------------------------------
-class RemindWidget extends StatelessWidget {
-  final int index;
-  
-  const RemindWidget({super.key, required this.index});
 
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 80,
-      margin: const EdgeInsets.symmetric(horizontal: 4.0, vertical: 8.0),
-      decoration: BoxDecoration(
-        color: const Color.fromARGB(255, 117, 113, 113),
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Center(
-        child: Text(
-          'Task\n${index + 1}',
-          textAlign: TextAlign.center,
-          style: const TextStyle(fontWeight: FontWeight.w500),
-        ),
-      ),
-    );
-  }
-}
 
 // ---------------------------------------------------------
 // COMPONENT: Kahoot-style Action Button

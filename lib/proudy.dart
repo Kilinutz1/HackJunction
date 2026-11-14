@@ -1,9 +1,11 @@
-import 'dart:io'; // Needed for File
+import 'dart:io'; 
+import 'dart:convert'; // NEW: Required for Base64 encoding
 import 'package:flutter/material.dart';
-import 'package:image_picker/image_picker.dart'; // NEW: Image Picker
+import 'package:image_picker/image_picker.dart'; 
+import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:path_provider/path_provider.dart'; // NEW: For permanent storage
 import 'localdb.dart';
 import 'event.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
 
 class ProudyPage extends StatefulWidget {
   final Event? existingEvent; 
@@ -15,11 +17,10 @@ class ProudyPage extends StatefulWidget {
 }
 
 class _ProudyPageState extends State<ProudyPage> {
-  // --- STATE VARIABLES ---
   bool _isFavorite = false; 
   String _selectedType = 'Proud Moment'; 
   DateTime _selectedDate = DateTime.now(); 
-  String? _selectedImagePath; // NEW: Holds the path to our selected image
+  String? _selectedImagePath; 
   
   final TextEditingController _textController = TextEditingController();
   final List<String> _eventTypes = ['Proud Moment','Memory', 'Other'];
@@ -27,13 +28,12 @@ class _ProudyPageState extends State<ProudyPage> {
   @override
   void initState() {
     super.initState();
-    // Pre-fill if editing
     if (widget.existingEvent != null) {
       _isFavorite = widget.existingEvent!.isFavorite;
       _selectedType = widget.existingEvent!.type;
       _selectedDate = widget.existingEvent!.date;
       _textController.text = widget.existingEvent!.description;
-      _selectedImagePath = widget.existingEvent!.pictureUrl; // Load existing image
+      _selectedImagePath = widget.existingEvent!.pictureUrl; 
     }
   }
 
@@ -51,16 +51,43 @@ class _ProudyPageState extends State<ProudyPage> {
     }
   }
 
-  // --- NEW: IMAGE PICKER LOGIC ---
   Future<void> _pickImage() async {
     final picker = ImagePicker();
-    // Force gallery selection only
     final XFile? image = await picker.pickImage(source: ImageSource.gallery);
     
     if (image != null) {
       setState(() {
-        _selectedImagePath = image.path; // Save the local path
+        _selectedImagePath = image.path; 
       });
+    }
+  }
+
+  Future<String?> _saveImageToPermanentStorage(String? tempPath) async {
+    if (tempPath == null || tempPath.isEmpty) return null;
+
+    // --- NEW: WEB HYBRID STORAGE (Base64) ---
+    if (kIsWeb) {
+      try {
+        // Read the temporary browser file and convert it to a permanent text string
+        final bytes = await XFile(tempPath).readAsBytes();
+        final base64String = base64Encode(bytes);
+        return 'base64:$base64String'; // We add 'base64:' so the app knows how to read it later
+      } catch (e) {
+        debugPrint("Error encoding web image: $e");
+        return tempPath;
+      }
+    }
+
+    // --- MOBILE PERMANENT STORAGE (Unchanged) ---
+    try {
+      final directory = await getApplicationDocumentsDirectory();
+      final fileName = 'memory_${DateTime.now().millisecondsSinceEpoch}.jpg';
+      final permanentPath = '${directory.path}/$fileName';
+      final newFile = await File(tempPath).copy(permanentPath);
+      return newFile.path;
+    } catch (e) {
+      debugPrint("Error saving mobile image: $e");
+      return tempPath;
     }
   }
 
@@ -72,6 +99,13 @@ class _ProudyPageState extends State<ProudyPage> {
       return;
     }
 
+    String? finalImagePath = _selectedImagePath;
+
+    // If we picked a NEW image (or this is a brand new event), copy it to permanent storage
+    if (widget.existingEvent == null || widget.existingEvent!.pictureUrl != _selectedImagePath) {
+      finalImagePath = await _saveImageToPermanentStorage(_selectedImagePath);
+    }
+
     final db = LocalDatabase();
 
     if (widget.existingEvent == null) {
@@ -81,7 +115,7 @@ class _ProudyPageState extends State<ProudyPage> {
         description: _textController.text.trim(),
         date: _selectedDate,
         isFavorite: _isFavorite,
-        pictureUrl: _selectedImagePath, // Save the image path
+        pictureUrl: finalImagePath, // Save the permanent path
       );
       await db.addEvent(newEvent);
     } else {
@@ -91,7 +125,7 @@ class _ProudyPageState extends State<ProudyPage> {
         description: _textController.text.trim(),
         date: _selectedDate,
         isFavorite: _isFavorite,
-        pictureUrl: _selectedImagePath, // Save the updated/kept image path
+        pictureUrl: finalImagePath, // Save the permanent path
       );
       await db.updateEvent(updatedEvent);
     }
@@ -105,6 +139,10 @@ class _ProudyPageState extends State<ProudyPage> {
     if (widget.existingEvent != null) {
       final db = LocalDatabase();
       await db.deleteEvent(widget.existingEvent!.id);
+      
+      // Optional: You could also delete the physical file here using File(widget.existingEvent!.pictureUrl!).delete() 
+      // to save storage space, but we'll keep it simple for now.
+
       if (mounted) {
         Navigator.pop(context, true); 
       }
@@ -254,24 +292,17 @@ class _ProudyPageState extends State<ProudyPage> {
                 children: [
                   Center(
                     child: ConstrainedBox(
-                      constraints: const BoxConstraints(
-                        maxHeight: 200, // Keeps the preview a reasonable size
-                      ),
+                      constraints: const BoxConstraints(maxHeight: 200),
                       child: ClipRRect(
                         borderRadius: BorderRadius.circular(12),
                         child: kIsWeb 
-                            ? Image.network(
-                                _selectedImagePath!,
-                                fit: BoxFit.contain, // Shows full image
-                              )
-                            : Image.file(
-                                File(_selectedImagePath!),
-                                fit: BoxFit.contain,
-                              ),
+                            ? (_selectedImagePath!.startsWith('base64:')
+                                ? Image.memory(base64Decode(_selectedImagePath!.substring(7)), fit: BoxFit.contain)
+                                : Image.network(_selectedImagePath!, fit: BoxFit.contain))
+                            : Image.file(File(_selectedImagePath!), fit: BoxFit.contain),
                       ),
                     ),
                   ),
-                  // Button to remove the selected image
                   IconButton(
                     icon: const Icon(Icons.cancel, color: Colors.white),
                     onPressed: () {
@@ -293,10 +324,9 @@ class _ProudyPageState extends State<ProudyPage> {
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   ),
-                  // Change button icon/text depending on if an image is picked
                   icon: Icon(_selectedImagePath == null ? Icons.add_photo_alternate_outlined : Icons.photo_library),
                   label: Text(_selectedImagePath == null ? 'Picture' : 'Change Pic'),
-                  onPressed: _pickImage, // Calls our new gallery function
+                  onPressed: _pickImage, 
                 ),
                 
                 TextButton.icon(
@@ -304,9 +334,7 @@ class _ProudyPageState extends State<ProudyPage> {
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                   ),
                   icon: const Icon(Icons.calendar_today_outlined),
-                  label: Text(
-                    '${_selectedDate.day}/${_selectedDate.month}/${_selectedDate.year}',
-                  ),
+                  label: Text('${_selectedDate.day}/${_selectedDate.month}/${_selectedDate.year}'),
                   onPressed: _pickDate,
                 ),
               ],

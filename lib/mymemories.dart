@@ -4,6 +4,7 @@ import 'localdb.dart';
 import 'event.dart'; 
 import 'proudy.dart'; // Make sure this matches your file name!
 import 'package:flutter/foundation.dart' show kIsWeb;
+import 'dart:convert';
 
 
 class MyMemoriesPage extends StatefulWidget {
@@ -232,11 +233,17 @@ Widget _buildImageError() {
                   maxHeight: 250, // Prevents tall photos from taking over the screen
                 ),
                 child: kIsWeb
-                    ? Image.network(
-                        event.pictureUrl!,
-                        fit: BoxFit.contain, // Shows the full image without cropping
-                        errorBuilder: (context, error, stackTrace) => _buildImageError(),
-                      )
+                    ? (event.pictureUrl!.startsWith('base64:')
+                        ? Image.memory(
+                            base64Decode(event.pictureUrl!.substring(7)),
+                            fit: BoxFit.contain,
+                            errorBuilder: (context, error, stackTrace) => _buildImageError(),
+                          )
+                        : Image.network(
+                            event.pictureUrl!,
+                            fit: BoxFit.contain,
+                            errorBuilder: (context, error, stackTrace) => _buildImageError(),
+                          ))
                     : Image.file(
                         File(event.pictureUrl!),
                         fit: BoxFit.contain,
