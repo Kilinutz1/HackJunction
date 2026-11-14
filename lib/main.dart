@@ -7,6 +7,7 @@ import 'project.dart';
 import 'remind.dart';
 import 'streak.dart';
 import 'breath.dart';
+import 'breathing_setup.dart';
 import 'app_theme.dart';
 import 'appearance.dart';
 import 'streak_reminder.dart';
@@ -147,14 +148,7 @@ class _MainScreenState extends State<MainScreen> {
     if (buttonName == "breath") {
       Navigator.push(
         context,
-        MaterialPageRoute(
-          builder: (context) => BreatheScreen(
-            durationInSeconds: 0,
-            onComplete: () {
-              Navigator.pop(context);
-            },
-          ),
-        ),
+        MaterialPageRoute(builder: (context) => const BreathingSetupPage()),
       );
     }
   }
