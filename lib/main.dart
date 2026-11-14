@@ -72,8 +72,9 @@ class MainScreen extends StatelessWidget {
           ),
         ],
         centerTitle: true,
-        backgroundColor: Colors.transparent,
+        backgroundColor: const Color.fromARGB(0, 0, 0, 0),
         elevation: 0,
+        title: const Text('My Proud Space', style: TextStyle(fontWeight: FontWeight.bold)),
       ),
       body: Column(
         children: [

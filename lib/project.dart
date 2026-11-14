@@ -94,7 +94,7 @@ class _ProjectLogbookPageState extends State<_ProjectLogbookPage> {
                 .compareTo(widget.logbook.entries.indexOf(b));
     });
     return Scaffold(
-      appBar: AppBar(title: const Text('Logbook')),
+      appBar: AppBar(title: const Text('Logbook', style: TextStyle(fontWeight: FontWeight.bold))),
       body: SafeArea(
         child: ListView(
           padding: const EdgeInsets.all(16),
