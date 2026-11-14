@@ -1,13 +1,12 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:math';
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'localdb.dart';
-import 'project_model.dart';
-
-export 'project_model.dart';
 
 const _categories = ['Hobbies', 'Sports', 'Everyday life', 'Work', 'Other'];
 
@@ -30,6 +29,44 @@ enum _ProjectSort {
   final String label;
 }
 
+class ProjectLogEntry {
+  ProjectLogEntry({
+    required this.date, 
+    required this.text, 
+    this.image,
+    String? id,
+  }) : id = id ?? '${DateTime.now().microsecondsSinceEpoch}-${Random().nextInt(0x7fffffff)}';
+
+  final String id;
+  final DateTime date;
+  final String text;
+  final Uint8List? image;
+
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'date': date.toIso8601String(),
+    'text': text,
+    if (image != null) 'image': base64Encode(image!),
+  };
+
+  factory ProjectLogEntry.fromJson(Map<String, dynamic> json) =>
+      ProjectLogEntry(
+        id: json['id'] as String?,
+        date: DateTime.parse(json['date'] as String),
+        text: json['text'] as String,
+        image: json['image'] == null
+            ? null
+            : base64Decode(json['image'] as String),
+      );
+}
+
+class ProjectLogbook {
+  ProjectLogbook([Iterable<ProjectLogEntry> entries = const []])
+      : entries = [...entries];
+  final List<ProjectLogEntry> entries;
+  VoidCallback? onChanged;
+}
+
 class _ProjectLogbookPage extends StatefulWidget {
   const _ProjectLogbookPage({required this.projectName, required this.logbook});
 
@@ -44,6 +81,9 @@ class _ProjectLogbookPageState extends State<_ProjectLogbookPage> {
   final _textController = TextEditingController();
   DateTime _date = DateUtils.dateOnly(DateTime.now());
   String? _textError;
+  
+  String? _editingEntryId;
+  Uint8List? _entryImage;
 
   @override
   void dispose() {
@@ -63,22 +103,81 @@ class _ProjectLogbookPageState extends State<_ProjectLogbookPage> {
     setState(() => _date = date);
   }
 
-  void _addEntry() {
+  Future<void> _pickImage() async {
+    try {
+      final picked = await ImagePicker().pickImage(
+        source: ImageSource.gallery,
+        imageQuality: 85,
+        maxWidth: 1600,
+        maxHeight: 1600,
+      );
+      if (picked != null) {
+        final bytes = await picked.readAsBytes();
+        if (mounted) setState(() => _entryImage = bytes);
+      }
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Could not load image.')),
+        );
+      }
+    }
+  }
+
+  void _saveEntry() {
     final text = _textController.text.trim();
     if (text.isEmpty) {
       setState(() => _textError = 'Please describe your progress.');
       return;
     }
+    
     setState(() {
-      widget.logbook.entries.insert(
-        0,
-        ProjectLogEntry(date: _date, text: text),
-      );
+      if (_editingEntryId != null) {
+        final index = widget.logbook.entries.indexWhere((e) => e.id == _editingEntryId);
+        if (index != -1) {
+          widget.logbook.entries[index] = ProjectLogEntry(
+            id: _editingEntryId,
+            date: _date,
+            text: text,
+            image: _entryImage,
+          );
+        }
+      } else {
+        widget.logbook.entries.insert(
+          0,
+          ProjectLogEntry(date: _date, text: text, image: _entryImage),
+        );
+      }
+      
       _textController.clear();
       _textError = null;
       _date = DateUtils.dateOnly(DateTime.now());
+      _entryImage = null;
+      _editingEntryId = null;
     });
     FocusScope.of(context).unfocus();
+    widget.logbook.onChanged?.call();
+  }
+
+  void _editEntry(ProjectLogEntry entry) {
+    setState(() {
+      _editingEntryId = entry.id;
+      _textController.text = entry.text;
+      _date = entry.date;
+      _entryImage = entry.image;
+    });
+  }
+
+  void _deleteEntry(ProjectLogEntry entry) {
+    setState(() {
+      widget.logbook.entries.removeWhere((e) => e.id == entry.id);
+      if (_editingEntryId == entry.id) {
+        _textController.clear();
+        _date = DateUtils.dateOnly(DateTime.now());
+        _entryImage = null;
+        _editingEntryId = null;
+      }
+    });
     widget.logbook.onChanged?.call();
   }
 
@@ -90,8 +189,8 @@ class _ProjectLogbookPageState extends State<_ProjectLogbookPage> {
       return dateOrder != 0
           ? dateOrder
           : widget.logbook.entries
-                .indexOf(a)
-                .compareTo(widget.logbook.entries.indexOf(b));
+              .indexOf(a)
+              .compareTo(widget.logbook.entries.indexOf(b));
     });
     return Scaffold(
       appBar: AppBar(title: const Text('Logbook', style: TextStyle(fontWeight: FontWeight.bold))),
@@ -104,30 +203,104 @@ class _ProjectLogbookPageState extends State<_ProjectLogbookPage> {
               style: Theme.of(context).textTheme.headlineSmall,
             ),
             const SizedBox(height: 16),
-            OutlinedButton.icon(
-              onPressed: _selectDate,
-              icon: const Icon(Icons.calendar_today_outlined),
-              label: Text('Date: ${_formatDate(_date)}'),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: _textController,
-              minLines: 3,
-              maxLines: 8,
-              decoration: InputDecoration(
-                labelText: 'Progress',
-                hintText: 'What progress have you made?',
-                alignLabelWithHint: true,
-                border: const OutlineInputBorder(),
-                errorText: _textError,
+            
+            Card(
+              elevation: _editingEntryId != null ? 4 : 1,
+              color: _editingEntryId != null ? Colors.purple.withOpacity(0.05) : null,
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      _editingEntryId != null ? 'Edit Entry' : 'New Entry',
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: _editingEntryId != null ? Colors.purple : null,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    OutlinedButton.icon(
+                      onPressed: _selectDate,
+                      icon: const Icon(Icons.calendar_today_outlined),
+                      label: Text('Date: ${_formatDate(_date)}'),
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: _textController,
+                      minLines: 3,
+                      maxLines: 8,
+                      decoration: InputDecoration(
+                        labelText: 'Progress',
+                        hintText: 'What progress have you made?',
+                        alignLabelWithHint: true,
+                        border: const OutlineInputBorder(),
+                        errorText: _textError,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    
+                    if (_entryImage != null)
+                      Stack(
+                        alignment: Alignment.topRight,
+                        children: [
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(8),
+                            child: Image.memory(
+                              _entryImage!,
+                              height: 150,
+                              width: double.infinity,
+                              fit: BoxFit.cover,
+                            ),
+                          ),
+                          IconButton.filled(
+                            onPressed: () => setState(() => _entryImage = null),
+                            icon: const Icon(Icons.close),
+                          ),
+                        ],
+                      ),
+                    if (_entryImage != null) const SizedBox(height: 12),
+                    
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      alignment: WrapAlignment.spaceBetween,
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      children: [
+                        OutlinedButton.icon(
+                          onPressed: _pickImage,
+                          icon: Icon(_entryImage == null ? Icons.add_photo_alternate : Icons.photo),
+                          label: Text(_entryImage == null ? 'Add photo' : 'Change photo'),
+                        ),
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            if (_editingEntryId != null)
+                              TextButton(
+                                onPressed: () {
+                                  setState(() {
+                                    _editingEntryId = null;
+                                    _textController.clear();
+                                    _entryImage = null;
+                                    _date = DateUtils.dateOnly(DateTime.now());
+                                  });
+                                },
+                                child: const Text('Cancel'),
+                              ),
+                            FilledButton.icon(
+                              onPressed: _saveEntry,
+                              icon: Icon(_editingEntryId != null ? Icons.save : Icons.add),
+                              label: Text(_editingEntryId != null ? 'Update' : 'Add entry'),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
             ),
-            const SizedBox(height: 12),
-            FilledButton.icon(
-              onPressed: _addEntry,
-              icon: const Icon(Icons.add),
-              label: const Text('Add entry'),
-            ),
+            
             const SizedBox(height: 24),
             Text('Entries', style: Theme.of(context).textTheme.titleLarge),
             const SizedBox(height: 8),
@@ -135,6 +308,7 @@ class _ProjectLogbookPageState extends State<_ProjectLogbookPage> {
               const Text(
                 'No entries yet. Record your first progress update above.',
               ),
+            
             for (final entry in entries)
               Card(
                 margin: const EdgeInsets.only(bottom: 12),
@@ -143,20 +317,66 @@ class _ProjectLogbookPageState extends State<_ProjectLogbookPage> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        _formatDate(entry.date),
-                        style: Theme.of(context).textTheme.titleSmall,
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            _formatDate(entry.date),
+                            style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                              color: Theme.of(context).colorScheme.primary,
+                            ),
+                          ),
+                          Row(
+                            children: [
+                              IconButton(
+                                icon: const Icon(Icons.edit_outlined, size: 20),
+                                onPressed: () => _editEntry(entry),
+                                padding: EdgeInsets.zero,
+                                constraints: const BoxConstraints(),
+                              ),
+                              const SizedBox(width: 16),
+                              IconButton(
+                                icon: const Icon(Icons.delete_outline, size: 20, color: Colors.red),
+                                onPressed: () {
+                                  showDialog(
+                                    context: context,
+                                    builder: (ctx) => AlertDialog(
+                                      title: const Text('Delete Entry?'),
+                                      content: const Text('Are you sure you want to delete this log entry?'),
+                                      actions: [
+                                        TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+                                        TextButton(
+                                          onPressed: () {
+                                            Navigator.pop(ctx);
+                                            _deleteEntry(entry);
+                                          }, 
+                                          child: const Text('Delete', style: TextStyle(color: Colors.red))
+                                        ),
+                                      ],
+                                    )
+                                  );
+                                },
+                                padding: EdgeInsets.zero,
+                                constraints: const BoxConstraints(),
+                              ),
+                            ],
+                          )
+                        ],
                       ),
                       const SizedBox(height: 8),
                       Text(entry.text),
                       if (entry.image != null) ...[
                         const SizedBox(height: 12),
-                        Image.memory(
-                          entry.image!,
-                          height: 200,
-                          fit: BoxFit.contain,
-                          errorBuilder: (_, error, stackTrace) =>
-                              const Text('Image unavailable'),
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(8),
+                          child: Image.memory(
+                            entry.image!,
+                            height: 200,
+                            width: double.infinity,
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, error, stackTrace) =>
+                                const Text('Image unavailable'),
+                          ),
                         ),
                       ],
                     ],
@@ -170,19 +390,117 @@ class _ProjectLogbookPageState extends State<_ProjectLogbookPage> {
   }
 }
 
+class Project {
+  Project({
+    required this.name,
+    this.description = '',
+    this.period,
+    this.importance,
+    this.category,
+    DateTime? createdAt,
+    ProjectLogbook? logbook,
+    String? id,
+    this.completed = false,
+  }) : id = id ?? '${DateTime.now().microsecondsSinceEpoch}-${Random().nextInt(0x7fffffff)}',
+       logbook = logbook ?? ProjectLogbook(),
+       createdAt = createdAt ?? DateTime.now();
+
+  final String name;
+  final String description;
+  final DateTimeRange? period;
+  final int? importance;
+  final String? category;
+  final DateTime createdAt;
+  final ProjectLogbook logbook;
+  final String id;
+  final bool completed;
+
+  bool hasExpired(DateTime now) {
+    final end = period?.end;
+    if (end == null) return false;
+    return !now.isBefore(DateTime(end.year, end.month, end.day + 1));
+  }
+
+  bool get isCompleted => completed || hasExpired(DateTime.now());
+
+  Project withCompleted(bool completed) => Project(
+    id: id,
+    name: name,
+    description: description,
+    period: period,
+    importance: importance,
+    category: category,
+    createdAt: createdAt,
+    logbook: logbook,
+    completed: completed,
+  );
+
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'name': name,
+    'description': description,
+    'start': period?.start.toIso8601String(),
+    'end': period?.end.toIso8601String(),
+    'importance': importance,
+    'category': category,
+    'createdAt': createdAt.toIso8601String(),
+    'completed': completed, // Reversible!
+    'entries': logbook.entries.map((entry) => entry.toJson()).toList(),
+  };
+
+  factory Project.fromJson(Map<String, dynamic> json) => Project(
+    id: json['id'] as String,
+    name: json['name'] as String,
+    description: json['description'] as String? ?? '',
+    period: json['start'] == null || json['end'] == null
+        ? null
+        : DateTimeRange(
+            start: DateTime.parse(json['start'] as String),
+            end: DateTime.parse(json['end'] as String),
+          ),
+    importance: json['importance'] as int?,
+    category: json['category'] as String?,
+    createdAt: DateTime.parse(json['createdAt'] as String),
+    completed: json['completed'] as bool? ?? false,
+    logbook: ProjectLogbook(
+      (json['entries'] as List? ?? []).map(
+        (entry) =>
+            ProjectLogEntry.fromJson(Map<String, dynamic>.from(entry as Map)),
+      ),
+    ),
+  );
+
+  int get durationDays {
+    final range = period;
+    if (range == null) return 0;
+    final start = DateTime.utc(
+      range.start.year,
+      range.start.month,
+      range.start.day,
+    );
+    final end = DateTime.utc(range.end.year, range.end.month, range.end.day);
+    return end.difference(start).inDays + 1;
+  }
+}
+
 class ProjectStore extends ValueNotifier<List<Project>> {
   ProjectStore({this.onSaveError}) : super([]);
 
+  static const storageKey = 'hackathon_projects_v1';
   final VoidCallback? onSaveError;
-  final LocalDatabase _db = LocalDatabase();
+  static Future<void>? _pendingWrite;
   bool _disposed = false;
 
   Future<void> load() async {
-    final projects = await _db.getAllProjects();
+    await _pendingWrite;
+    final prefs = await SharedPreferences.getInstance();
+    final saved = prefs.getString(storageKey);
+    final decoded = saved == null ? <dynamic>[] : jsonDecode(saved) as List;
     if (_disposed) return;
-    value = projects;
+    value = decoded
+        .map((item) => Project.fromJson(Map<String, dynamic>.from(item as Map)))
+        .toList();
     _bindLogbooks();
-    completeExpired();
   }
 
   void _bindLogbooks() {
@@ -198,7 +516,6 @@ class ProjectStore extends ValueNotifier<List<Project>> {
   void add(Project project) {
     value = [...value, project];
     _bindLogbooks();
-    completeExpired();
     unawaited(persist());
   }
 
@@ -208,7 +525,6 @@ class ProjectStore extends ValueNotifier<List<Project>> {
         if (item.id == project.id) project else item,
     ];
     _bindLogbooks();
-    completeExpired();
     unawaited(persist());
   }
 
@@ -218,27 +534,25 @@ class ProjectStore extends ValueNotifier<List<Project>> {
     unawaited(persist());
   }
 
-  void completeExpired([DateTime? now]) {
-    final time = now ?? DateTime.now();
-    if (!value.any(
-      (project) => !project.completed && project.hasExpired(time),
-    )) {
-      return;
-    }
-    value = [
-      for (final project in value)
-        if (!project.completed && project.hasExpired(time))
-          project.withCompleted(true)
-        else
-          project,
-    ];
-    _bindLogbooks();
-    unawaited(persist());
+  Future<void> persist() {
+    final snapshot = jsonEncode(
+      value.map((project) => project.toJson()).toList(),
+    );
+    final write = (_pendingWrite ?? Future<void>.value())
+        .then((_) async {
+          final prefs = await SharedPreferences.getInstance();
+          if (!await prefs.setString(storageKey, snapshot)) {
+            throw StateError('Project storage failed');
+          }
+        })
+        .catchError((Object error) {
+          if (!_disposed) onSaveError?.call();
+        });
+    _pendingWrite = write;
+    return write.whenComplete(() {
+      if (identical(_pendingWrite, write)) _pendingWrite = null;
+    });
   }
-
-  Future<void> persist() => _db.saveProjects(value).catchError((Object error) {
-    if (!_disposed) onSaveError?.call();
-  });
 
   @override
   void dispose() {
@@ -256,7 +570,7 @@ Future<bool> _confirmDelete(BuildContext context, Project project) async =>
       builder: (context) => AlertDialog(
         title: const Text('Delete project?'),
         content: Text(
-          'Delete "${project.name}" and its images and logbook? This cannot be undone.',
+          'Delete "${project.name}" and its logbook? This cannot be undone.',
         ),
         actions: [
           TextButton(
@@ -293,7 +607,6 @@ class ProjectsPage extends StatefulWidget {
 class _ProjectsPageState extends State<ProjectsPage>
     with WidgetsBindingObserver {
   late final ProjectStore _projects;
-  Timer? _expirationTimer;
   bool _loading = true;
   bool _loadFailed = false;
 
@@ -316,7 +629,6 @@ class _ProjectsPageState extends State<ProjectsPage>
     );
     WidgetsBinding.instance.addObserver(this);
     _load();
-    _scheduleExpirationCheck();
   }
 
   Future<void> _load() async {
@@ -333,28 +645,9 @@ class _ProjectsPageState extends State<ProjectsPage>
     }
   }
 
-  void _scheduleExpirationCheck() {
-    _expirationTimer?.cancel();
-    final now = DateTime.now();
-    final tomorrow = DateTime(now.year, now.month, now.day + 1);
-    _expirationTimer = Timer(tomorrow.difference(now), () {
-      _projects.completeExpired();
-      _scheduleExpirationCheck();
-    });
-  }
-
-  @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed) {
-      _projects.completeExpired();
-      _scheduleExpirationCheck();
-    }
-  }
-
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
-    _expirationTimer?.cancel();
     _projects.dispose();
     super.dispose();
   }
@@ -373,7 +666,6 @@ class _ProjectsPageState extends State<ProjectsPage>
         builder: (_) => _ProjectDetailsPage(
           project: project,
           onDelete: () => _projects.remove(project),
-          onCompleted: () => _projects.update(project.withCompleted(true)),
         ),
       ),
     );
@@ -384,7 +676,7 @@ class _ProjectsPageState extends State<ProjectsPage>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Projects')),
+      appBar: AppBar(title: const Text('Projects', style: TextStyle(fontWeight: FontWeight.bold)),backgroundColor: const Color.fromARGB(0, 0, 0, 0),),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : _loadFailed
@@ -451,7 +743,7 @@ class _AllProjectsPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('All projects')),
+      appBar: AppBar(title: const Text('All Projects', style: TextStyle(fontWeight: FontWeight.bold)),backgroundColor: const Color.fromARGB(0, 0, 0, 0),),
       body: SafeArea(
         child: Column(
           children: [
@@ -554,11 +846,11 @@ class _ProjectsListState extends State<_ProjectsList> {
               items.sort((a, b) {
                 final order = switch (_sort) {
                   _ProjectSort.priority => (b.importance ?? 0).compareTo(
-                    a.importance ?? 0,
-                  ),
+                      a.importance ?? 0,
+                    ),
                   _ProjectSort.duration => b.durationDays.compareTo(
-                    a.durationDays,
-                  ),
+                      a.durationDays,
+                    ),
                   _ProjectSort.oldest => a.createdAt.compareTo(b.createdAt),
                   _ProjectSort.newest => b.createdAt.compareTo(a.createdAt),
                 };
@@ -568,8 +860,9 @@ class _ProjectsListState extends State<_ProjectsList> {
               });
               return LayoutBuilder(
                 builder: (context, constraints) {
-                  final cardExtent =
-                      168.0 * MediaQuery.textScalerOf(context).scale(16) / 16;
+                  // --- FIX: Syntax error from copy-paste fixed here! ---
+                  final cardExtent = 168.0 * MediaQuery.textScalerOf(context).scale(16) / 16;
+                  
                   final visibleCount = widget.preview
                       ? min(
                           items.length,
@@ -598,17 +891,21 @@ class _ProjectsListState extends State<_ProjectsList> {
                     itemCount: visibleCount,
                     itemBuilder: (context, index) {
                       final project = items[index];
+                      
+                      final images = project.logbook.entries.where((e) => e.image != null);
+                      final firstLogImage = images.isNotEmpty ? images.first.image : null;
+
                       return Card(
                         margin: const EdgeInsets.only(bottom: 12),
                         clipBehavior: Clip.antiAlias,
                         child: ListTile(
                           contentPadding: const EdgeInsets.all(16),
-                          leading: project.images.isEmpty
+                          leading: firstLogImage == null
                               ? const Icon(Icons.folder_outlined)
                               : ClipRRect(
                                   borderRadius: BorderRadius.circular(8),
                                   child: Image.memory(
-                                    project.images.first,
+                                    firstLogImage,
                                     width: 48,
                                     height: 48,
                                     fit: BoxFit.cover,
@@ -679,9 +976,10 @@ class _ProjectsListState extends State<_ProjectsList> {
                               PopupMenuButton<String>(
                                 tooltip: 'Project actions',
                                 onSelected: (action) async {
-                                  if (action == 'complete') {
+                                  // --- FIX: This is now a reversible toggle ---
+                                  if (action == 'toggle_complete') {
                                     widget.projects.update(
-                                      project.withCompleted(true),
+                                      project.withCompleted(!project.completed),
                                     );
                                   } else if (action == 'delete') {
                                     if (await _confirmDelete(
@@ -694,11 +992,11 @@ class _ProjectsListState extends State<_ProjectsList> {
                                   }
                                 },
                                 itemBuilder: (_) => [
-                                  if (!project.isCompleted)
-                                    const PopupMenuItem(
-                                      value: 'complete',
-                                      child: Text('Mark as completed'),
-                                    ),
+                                  // --- FIX: Dynamic text based on current completion status ---
+                                  PopupMenuItem(
+                                    value: 'toggle_complete',
+                                    child: Text(project.isCompleted ? 'Mark as incomplete' : 'Mark as completed'),
+                                  ),
                                   const PopupMenuItem(
                                     value: 'delete',
                                     child: Text('Delete project'),
@@ -747,11 +1045,12 @@ class _ProjectOverviewPage extends StatelessWidget {
       return order != 0
           ? order
           : project.logbook.entries
-                .indexOf(a)
-                .compareTo(project.logbook.entries.indexOf(b));
+              .indexOf(a)
+              .compareTo(project.logbook.entries.indexOf(b));
     });
     return Scaffold(
-      appBar: AppBar(title: const Text('Project overview')),
+      appBar: AppBar(title: const Text('Project Overview', style: TextStyle(fontWeight: FontWeight.bold)),backgroundColor: const Color.fromARGB(0, 0, 0, 0),),
+
       body: SafeArea(
         child: ListView(
           padding: const EdgeInsets.all(16),
@@ -787,20 +1086,7 @@ class _ProjectOverviewPage extends StatelessWidget {
               project.category ?? 'No category selected',
             ),
             _info(context, 'Created', _formatDate(project.createdAt)),
-            Text('Images', style: Theme.of(context).textTheme.titleMedium),
-            const SizedBox(height: 8),
-            if (project.images.isEmpty) const Text('No images added.'),
-            for (final image in project.images)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 12),
-                child: Image.memory(
-                  image,
-                  height: 200,
-                  fit: BoxFit.contain,
-                  errorBuilder: (_, error, stackTrace) =>
-                      const Text('Image unavailable'),
-                ),
-              ),
+            
             const SizedBox(height: 24),
             Text(
               'Recent logbook entries',
@@ -844,11 +1130,10 @@ class _ProjectOverviewPage extends StatelessWidget {
 }
 
 class _ProjectDetailsPage extends StatefulWidget {
-  const _ProjectDetailsPage({this.project, this.onDelete, this.onCompleted});
+  const _ProjectDetailsPage({this.project, this.onDelete});
 
   final Project? project;
   final VoidCallback? onDelete;
-  final VoidCallback? onCompleted;
 
   @override
   State<_ProjectDetailsPage> createState() => _ProjectDetailsPageState();
@@ -861,8 +1146,6 @@ class _ProjectDetailsPageState extends State<_ProjectDetailsPage> {
   late final TextEditingController _nameController;
   late final TextEditingController _descriptionController;
   String? _nameError;
-  late final List<Uint8List> _images;
-  bool _isPickingImages = false;
   late final ProjectLogbook _logbook;
   late bool _completed;
 
@@ -876,9 +1159,8 @@ class _ProjectDetailsPageState extends State<_ProjectDetailsPage> {
     _period = widget.project?.period;
     _importance = widget.project?.importance;
     _category = widget.project?.category;
-    _images = [...?widget.project?.images];
     _logbook = widget.project?.logbook ?? ProjectLogbook();
-    _completed = widget.project?.isCompleted ?? false;
+    _completed = widget.project?.completed ?? false;
   }
 
   @override
@@ -903,9 +1185,8 @@ class _ProjectDetailsPageState extends State<_ProjectDetailsPage> {
         importance: _importance,
         category: _category,
         createdAt: widget.project?.createdAt,
-        images: _images,
         logbook: _logbook,
-        completed: _completed,
+        completed: _completed, // Reversible status is saved here!
       ),
     );
   }
@@ -925,46 +1206,12 @@ class _ProjectDetailsPageState extends State<_ProjectDetailsPage> {
     setState(() => _period = selected);
   }
 
-  Future<void> _pickImages() async {
-    setState(() => _isPickingImages = true);
-    try {
-      final selected = await ImagePicker().pickMultiImage(
-        maxWidth: 1600,
-        maxHeight: 1600,
-        imageQuality: 85,
-      );
-      final images = await Future.wait(
-        selected.map((image) => image.readAsBytes()),
-      );
-      if (!mounted) return;
-      setState(() {
-        _images.addAll(images);
-        final addedAt = DateTime.now();
-        for (final image in images) {
-          _logbook.entries.insert(
-            0,
-            ProjectLogEntry(date: addedAt, text: 'Image added', image: image),
-          );
-        }
-      });
-      if (images.isNotEmpty) _logbook.onChanged?.call();
-    } catch (_) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Could not load images. Please try again.'),
-        ),
-      );
-    } finally {
-      if (mounted) setState(() => _isPickingImages = false);
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.project == null ? 'New project' : 'Edit project'),
+        title: Text(widget.project == null ? 'New project' : 'Edit project',style:TextStyle(fontWeight: FontWeight.bold) ),
+        backgroundColor: const Color.fromARGB(0, 0, 0, 0),
         actions: [
           if (widget.project != null)
             IconButton(
@@ -987,31 +1234,19 @@ class _ProjectDetailsPageState extends State<_ProjectDetailsPage> {
           children: [
             Builder(
               builder: (context) {
-                final expired =
-                    _period != null &&
-                    !DateTime.now().isBefore(
-                      DateTime(
-                        _period!.end.year,
-                        _period!.end.month,
-                        _period!.end.day + 1,
-                      ),
-                    );
-                final completed = _completed || expired;
+                // --- FIX: The button now acts purely as a toggle that says "Mark as incomplete" if it's currently true ---
                 return Padding(
                   padding: const EdgeInsets.only(bottom: 16),
                   child: OutlinedButton.icon(
                     icon: Icon(
-                      completed
+                      _completed
                           ? Icons.check_circle
                           : Icons.check_circle_outline,
                     ),
-                    label: Text(completed ? 'Completed' : 'Mark as completed'),
-                    onPressed: completed
-                        ? null
-                        : () {
-                            setState(() => _completed = true);
-                            widget.onCompleted?.call();
-                          },
+                    label: Text(_completed ? 'Mark as incomplete' : 'Mark as completed'),
+                    onPressed: () {
+                      setState(() => _completed = !_completed);
+                    },
                   ),
                 );
               },
@@ -1037,54 +1272,7 @@ class _ProjectDetailsPageState extends State<_ProjectDetailsPage> {
                 border: OutlineInputBorder(),
               ),
             ),
-            const SizedBox(height: 16),
-            OutlinedButton.icon(
-              onPressed: _isPickingImages ? null : _pickImages,
-              icon: const Icon(Icons.add_photo_alternate_outlined),
-              label: Text(_isPickingImages ? 'Loading images …' : 'Add images'),
-            ),
-            if (_images.isNotEmpty) ...[
-              const SizedBox(height: 12),
-              Wrap(
-                spacing: 12,
-                runSpacing: 12,
-                children: [
-                  for (var index = 0; index < _images.length; index++)
-                    SizedBox(
-                      width: 160,
-                      height: 160,
-                      child: Stack(
-                        fit: StackFit.expand,
-                        children: [
-                          ClipRRect(
-                            borderRadius: BorderRadius.circular(12),
-                            child: Image.memory(
-                              _images[index],
-                              fit: BoxFit.contain,
-                              errorBuilder: (_, error, stackTrace) =>
-                                  const Center(
-                                    child: Text('Image unavailable'),
-                                  ),
-                            ),
-                          ),
-                          Positioned(
-                            top: 0,
-                            right: 0,
-                            child: IconButton.filled(
-                              tooltip: 'Remove image',
-                              onPressed: _isPickingImages
-                                  ? null
-                                  : () =>
-                                        setState(() => _images.removeAt(index)),
-                              icon: const Icon(Icons.close),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                ],
-              ),
-            ],
+            
             const SizedBox(height: 24),
             Card(
               clipBehavior: Clip.antiAlias,
@@ -1152,7 +1340,7 @@ class _ProjectDetailsPageState extends State<_ProjectDetailsPage> {
             FilledButton.icon(
               icon: const Icon(Icons.check),
               label: const Text('Save'),
-              onPressed: _isPickingImages ? null : _save,
+              onPressed: _save,
             ),
           ],
         ),

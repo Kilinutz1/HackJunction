@@ -1,11 +1,12 @@
 import 'dart:io';
-import 'dart:math'; // NEW: Required for our randomizer logic
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'localdb.dart';
 import 'event.dart';
 import 'dart:convert';
 import 'package:audioplayers/audioplayers.dart';
+import 'project.dart';
 
 // ---------------------------------------------------------
 // 1. THE LIST WIDGET (The Horizontal Dashboard Cards)
@@ -31,11 +32,11 @@ class _RewindListWidgetState extends State<RewindListWidget> {
     final db = LocalDatabase();
     final allEvents = await db.getAllEvents();
     
-    // 1. Separate all events into our two main categories
+    // 1. Separate all normal events into our two main categories
     final memoryEvents = allEvents.where((e) => e.type == 'Memory').toList();
     final proudEvents = allEvents.where((e) => e.type == 'Proud Moment').toList();
 
-    // 2. Run our custom algorithm on both buckets
+    // 2. Run our custom algorithm on both normal buckets
     final Map<String, List<Event>> finalGroups = {};
     
     final finalMemories = _generateRandomBucket(memoryEvents);
@@ -47,6 +48,34 @@ class _RewindListWidgetState extends State<RewindListWidget> {
     if (finalProud.isNotEmpty) {
       finalGroups['Proud Moment'] = finalProud;
     }
+
+    // --- NEW: 3rd BUCKET (PROJECT SPOTLIGHT) ---
+    final projectStore = ProjectStore();
+    await projectStore.load(); // Fetch from SharedPreferences
+
+    List<Event> projectEvents = [];
+    final random = Random();
+
+    for (var project in projectStore.value) {
+      // Grab all logbook entries (standalone images were removed from projects!)
+      for (var entry in project.logbook.entries) {
+        projectEvents.add(Event(
+          id: 'proj_log_${DateTime.now().microsecondsSinceEpoch}_${random.nextInt(10000)}',
+          type: 'Project Spotlight',
+          description: '${project.name}:\n${entry.text}', 
+          date: entry.date,
+          isFavorite: true,
+          pictureUrl: entry.image != null ? 'base64:${base64Encode(entry.image!)}' : null,
+        ));
+      }
+    }
+
+    // If we found any project logs, shuffle them and take a maximum of 10!
+    if (projectEvents.isNotEmpty) {
+      projectEvents.shuffle(random);
+      finalGroups['Project Spotlight'] = projectEvents.take(10).toList();
+    }
+    // ------------------------------------------
 
     setState(() {
       _groupedEvents = finalGroups;
@@ -60,42 +89,32 @@ class _RewindListWidgetState extends State<RewindListWidget> {
 
     final random = Random();
     
-    // The specific random sizes you requested
     final sizeOptions = [1, 1, 1, 2, 2, 3, 4, 5];
     int targetSize = sizeOptions[random.nextInt(sizeOptions.length)];
 
-    // Separate into liked and unliked buckets
     List<Event> likedEvents = categoryEvents.where((e) => e.isFavorite).toList();
     List<Event> unlikedEvents = categoryEvents.where((e) => !e.isFavorite).toList();
 
-    // Shuffle both pools so we get different pictures on every refresh
     likedEvents.shuffle(random);
     unlikedEvents.shuffle(random);
 
     List<Event> bucket = [];
 
-    // Calculate how many of each we need (Roughly 50/50)
     int targetLiked = (targetSize / 2).ceil();
     int targetUnliked = targetSize - targetLiked;
 
-    // 1. Try to take the liked events
     int takenLiked = min(targetLiked, likedEvents.length);
     bucket.addAll(likedEvents.take(takenLiked));
 
-    // 2. Try to take the unliked events
     int takenUnliked = min(targetSize - takenLiked, unlikedEvents.length);
     bucket.addAll(unlikedEvents.take(takenUnliked));
 
-    // 3. Fallback: If we didn't have enough unliked events to reach the target size, 
-    // fill the remaining slots with extra liked events (if we have any left)
     if (bucket.length < targetSize && likedEvents.length > takenLiked) {
       int extraNeeded = targetSize - bucket.length;
       bucket.addAll(likedEvents.skip(takenLiked).take(extraNeeded));
     }
 
-    // Finally, shuffle the resulting bucket so the liked/unliked events are in a random order!
     bucket.shuffle(random);
-
     return bucket;
   }
 
@@ -125,7 +144,6 @@ class _RewindListWidgetState extends State<RewindListWidget> {
           final type = _groupedEvents.keys.elementAt(index);
           final eventsList = _groupedEvents[type]!;
           
-          // Assign simulated music track
           final musicTrack = type == 'Proud Moment' ? 'funky.m4a' : 'lofty.m4a';
 
           return SingleRewindWidget(
@@ -138,8 +156,6 @@ class _RewindListWidgetState extends State<RewindListWidget> {
     );
   }
 }
-
-// ... The rest of the file (SingleRewindWidget and StoryViewerScreen) stays exactly the same!
 
 // ---------------------------------------------------------
 // 2. THE SINGLE WIDGET (The Card on the Dashboard)
@@ -158,7 +174,6 @@ class SingleRewindWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Try to find an event with a picture to use as the cover image
     final coverEvent = events.firstWhere(
       (e) => e.pictureUrl != null && e.pictureUrl!.isNotEmpty, 
       orElse: () => events.first
@@ -167,7 +182,6 @@ class SingleRewindWidget extends StatelessWidget {
 
     return GestureDetector(
       onTap: () {
-        // Open the full-screen story viewer!
         Navigator.push(
           context,
           MaterialPageRoute(
@@ -197,7 +211,6 @@ class SingleRewindWidget extends StatelessWidget {
         child: Stack(
           fit: StackFit.expand,
           children: [
-            // Background: Picture or Gradient
             if (hasPicture)
               kIsWeb
                   ? (coverEvent.pictureUrl!.startsWith('base64:')
@@ -215,10 +228,8 @@ class SingleRewindWidget extends StatelessWidget {
                 ),
               ),
 
-            // Dark overlay for text readability
             Container(color: Colors.black45),
 
-            // Title Text
             Center(
               child: Padding(
                 padding: const EdgeInsets.all(8.0),
@@ -261,8 +272,6 @@ class StoryViewerScreen extends StatefulWidget {
 
 class _StoryViewerScreenState extends State<StoryViewerScreen> {
   int _currentIndex = 0;
-  
-  // 1. Create the Audio Player
   final AudioPlayer _audioPlayer = AudioPlayer();
 
   @override
@@ -271,20 +280,14 @@ class _StoryViewerScreenState extends State<StoryViewerScreen> {
     _startMusic();
   }
 
-  // 2. Play the music!
   Future<void> _startMusic() async {
-    // Tell the player to loop the song seamlessly
     await _audioPlayer.setReleaseMode(ReleaseMode.loop);
-    
-    // Play the specific track passed in from the RewindListWidget
-    // Note: AssetSource automatically looks inside the 'assets' folder!
     await _audioPlayer.play(AssetSource(widget.musicTrack));
   }
 
-  // 3. Stop the music when the user closes the story
   @override
   void dispose() {
-    _audioPlayer.dispose(); // Kills the audio instantly
+    _audioPlayer.dispose();
     super.dispose();
   }
 
@@ -303,7 +306,7 @@ class _StoryViewerScreenState extends State<StoryViewerScreen> {
         if (_currentIndex < widget.events.length - 1) {
           _currentIndex++;
         } else {
-          Navigator.pop(context); // Closes story (which triggers dispose() and stops music)
+          Navigator.pop(context);
         }
       });
     }
@@ -321,7 +324,6 @@ class _StoryViewerScreenState extends State<StoryViewerScreen> {
         child: Stack(
           fit: StackFit.expand,
           children: [
-            // 1. The Background
             AnimatedSwitcher(
               duration: const Duration(milliseconds: 400),
               child: SizedBox(
@@ -331,9 +333,9 @@ class _StoryViewerScreenState extends State<StoryViewerScreen> {
                 child: hasPicture
                     ? (kIsWeb
                         ? (currentEvent.pictureUrl!.startsWith('base64:')
-                            ? Image.memory(base64Decode(currentEvent.pictureUrl!.substring(7)), fit: BoxFit.cover)
-                            : Image.network(currentEvent.pictureUrl!, fit: BoxFit.cover))
-                        : Image.file(File(currentEvent.pictureUrl!), fit: BoxFit.cover))
+                            ? Image.memory(base64Decode(currentEvent.pictureUrl!.substring(7)), fit: BoxFit.contain)
+                            : Image.network(currentEvent.pictureUrl!, fit: BoxFit.contain))
+                        : Image.file(File(currentEvent.pictureUrl!), fit: BoxFit.contain))
                     : Container(
                         decoration: BoxDecoration(
                           gradient: LinearGradient(
@@ -346,7 +348,6 @@ class _StoryViewerScreenState extends State<StoryViewerScreen> {
               ),
             ),
 
-            // 2. Dark Overlay
             Container(
               decoration: const BoxDecoration(
                 gradient: LinearGradient(
@@ -358,7 +359,6 @@ class _StoryViewerScreenState extends State<StoryViewerScreen> {
               ),
             ),
 
-            // 3. Story Bars
             Positioned(
               top: 40,
               left: 10,
@@ -380,7 +380,6 @@ class _StoryViewerScreenState extends State<StoryViewerScreen> {
               ),
             ),
 
-            // 4. Header
             Positioned(
               top: 55,
               left: 16,
@@ -400,7 +399,6 @@ class _StoryViewerScreenState extends State<StoryViewerScreen> {
               ),
             ),
 
-            // 5. Text
             Positioned(
               bottom: 40,
               left: 20,

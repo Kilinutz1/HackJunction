@@ -159,7 +159,7 @@ class _ProudyPageState extends State<ProudyPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.existingEvent == null ? 'Add Event' : 'Edit Event'),
+        title: Text(widget.existingEvent == null ? 'Add Event' : 'Edit Event',style: TextStyle(fontWeight: FontWeight.bold)),
         backgroundColor: Colors.transparent,
         elevation: 0,
         actions: [
