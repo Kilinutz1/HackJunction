@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart'; // Make sure this is imported
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'proudy.dart';
 import 'mymemories.dart';
@@ -28,7 +28,6 @@ class HackathonApp extends StatelessWidget {
   }
 }
 
-// 1. Changed to StatefulWidget to handle lifecycle and startup checks
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
 
@@ -41,40 +40,44 @@ class _MainScreenState extends State<MainScreen> {
   @override
   void initState() {
     super.initState();
-    // 2. Run the check right after the first frame builds
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _checkDailyVisit();
     });
   }
 
-  // 3. The logic to check if they visited today
   Future<void> _checkDailyVisit() async {
     final prefs = await SharedPreferences.getInstance();
     final now = DateTime.now();
-    // Using your existing dayKey format from StreakService
     final todayStr = StreakService.dayKey(now); 
     final lastVisit = prefs.getString('last_visit_date');
 
     if (lastVisit != todayStr) {
-      // It's a new day! Save today's date so it doesn't trigger again today
-      await prefs.setString('last_visit_date', todayStr);
-      
       if (!mounted) return;
 
-      // Force navigation to the breathe screen
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => BreatheScreen(
-            durationInSeconds: 12, // Set to however long you want them to breathe
-            onComplete: () {
-              // 4. Increase the streak when they finish breathing!
-              StreakService().recordActivity(); 
-              Navigator.pop(context);
-            },
+      bool completedBreathe = false;
+
+      // Die Endlos-Schleife gegen Schummler!
+      // Wenn der Nutzer die Seite über "Zurück" verlässt, wird completedBreathe 
+      // nicht auf true gesetzt und die Seite öffnet sich sofort wieder.
+      while (!completedBreathe && mounted) {
+        await Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => BreatheScreen(
+              durationInSeconds: 12, // Zeit absitzen!
+              onComplete: () {
+                completedBreathe = true; // Übung bestanden!
+                StreakService().recordActivity(); 
+                Navigator.pop(context);
+              },
+            ),
           ),
-        ),
-      );
+        );
+      }
+
+      // Erst speichern, wenn die Schleife besiegt wurde (Button geklickt).
+      // Wer die App vorher killt, muss beim Neustart ran.
+      await prefs.setString('last_visit_date', todayStr);
     }
   }
 
@@ -131,14 +134,13 @@ class _MainScreenState extends State<MainScreen> {
         elevation: 0,
         title: const Text('My Proud Space', style: TextStyle(fontWeight: FontWeight.bold)),
       ),
+      // Wieder dein sauberes, originales Layout ohne das Refresh-Chaos
       body: Column(
         children: [
-          // 1. The Scrollable Row of RemindWidgets
           RewindListWidget(),
           
           const SizedBox(height: 8),
 
-          // 2. The Button Grid
           Expanded(
             child: Padding(
               padding: const EdgeInsets.all(12.0),
