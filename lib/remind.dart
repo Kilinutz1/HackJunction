@@ -7,6 +7,7 @@ import 'event.dart';
 import 'dart:convert';
 import 'package:audioplayers/audioplayers.dart';
 import 'project.dart';
+import 'demodata.dart';
 
 // ---------------------------------------------------------
 // 1. THE LIST WIDGET (The Horizontal Dashboard Cards)
@@ -29,8 +30,12 @@ class RewindListWidgetState extends State<RewindListWidget> {
   @override
   void initState() {
     super.initState();
+    seedDemoDataIfNeeded().then((_) {
     refresh();
+    });
   }
+
+  
 
   Future<void> _loadEvents() async {
     final db = LocalDatabase();

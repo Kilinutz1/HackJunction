@@ -26,7 +26,33 @@ class LocalDatabase {
     final prefs = await SharedPreferences.getInstance();
     return _decodeProjects(prefs.getString(projectsStorageKey));
   }
+Future<void> addEventsBulk(List<Event> newEvents) async {
+    final prefs = await SharedPreferences.getInstance();
 
+    // 1. Fetch the current list of events
+    List<Event> currentEvents = await getAllEvents();
+
+    // 2. Insert all the new events at the top of the list
+    currentEvents.insertAll(0, newEvents);
+
+    // 3. Convert the whole list back into JSON strings
+    List<String> dataToSave = currentEvents
+        .map((event) => jsonEncode(event.toJson()))
+        .toList();
+
+    // 4. Overwrite the database with the updated list ONCE
+    if (!await prefs.setStringList(_storageKey, dataToSave)) {
+      throw StateError('Bulk event storage failed');
+    }
+
+    // 5. Check if we need to record activity for streaks
+    bool shouldRecordActivity = newEvents.any(
+      (event) => event.type == 'Memory' || event.type == 'Proud Moment',
+    );
+    if (shouldRecordActivity) {
+      await StreakService().recordActivity();
+    }
+  }
   Future<void> saveProjects(List<Project> projects) {
     // Snapshot immediately, then serialize writes across page instances.
     final snapshot = jsonEncode(
