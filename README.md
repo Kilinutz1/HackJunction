@@ -6,12 +6,6 @@ My Proud Space is a Flutter app that brings positive experiences, personal achie
 
 The journey is simple: **Capture moments → Pursue goals → Rediscover memories → Reflect on your week.** The app interface is in English.
 
-## Demo video
-
-The [90-second demo video](video/out/demo.mp4) introduces the idea and core features through actual Flutter screens rendered with sample data. It follows the journey from a first entry through projects and memories to a weekly review and a breathing exercise.
-
-The video is available locally at `video/out/demo.mp4` (Full HD, English narration). The output directory is excluded from Git, so it is not included in a fresh checkout. See [video/README.md](video/README.md) for instructions on generating the video.
-
 ## Features
 
 | Area | What the app offers |
@@ -84,7 +78,6 @@ Cross-device synchronization is not currently implemented.
 | `lib/app_theme.dart`, `lib/appearance.dart` | Visual design and accent colors |
 | `assets/` | Audio tracks and sample images |
 | `test/` | Tests for layouts, storage, reviews, breathing exercises, and streaks |
-| `video/` | Remotion project, narration, and demo video |
 
 ## Development
 
@@ -94,5 +87,3 @@ Run the existing Flutter tests and static analysis from the project directory:
 flutter test
 flutter analyze
 ```
-
-The demo video is built separately with Remotion. Commands and prerequisites are documented in [video/README.md](video/README.md).
