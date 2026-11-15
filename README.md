@@ -1,33 +1,33 @@
 # My Proud Space
 
-**Das Gute wahrnehmen. Eigene Fortschritte erinnern. Kleinen Erfolgen Raum geben.**
+**Notice the good. Remember your growth. Make room for small wins.**
 
-My Proud Space ist eine Flutter-App, die positive Erlebnisse, persönliche Erfolge und bedeutungsvolle Ziele an einem Ort zusammenbringt. Unser Hackathon-Projekt entstand mit der Idee, Menschen beim Wiederaufbau ihres Alltags nach einer Depression zu unterstützen: Ein Spaziergang, ein Treffen mit Freunden oder ein kleiner Schritt Richtung Ziel soll nicht in Vergessenheit geraten.
+My Proud Space is a Flutter app that brings positive experiences, personal achievements, and meaningful goals together in one place. Our hackathon project was conceived to support people rebuilding everyday life after depression: a walk, a coffee with a friend, or a small step toward a goal deserves to be remembered.
 
-Der Ablauf ist einfach: **Momente festhalten → Ziele verfolgen → Erinnerungen wiederentdecken → die Woche reflektieren.** Die App-Oberfläche ist auf Englisch.
+The journey is simple: **Capture moments → Pursue goals → Rediscover memories → Reflect on your week.** The app interface is in English.
 
-## Demo-Video
+## Demo video
 
-Das [90-sekündige Demo-Video](video/out/demo.mp4) zeigt die Idee und die wichtigsten Funktionen anhand echter, mit Beispieldaten gerenderter Flutter-Oberflächen. Es führt vom ersten Eintrag über Projekte und Erinnerungen bis zum Wochenrückblick und zur Atemübung.
+The [90-second demo video](video/out/demo.mp4) introduces the idea and core features through actual Flutter screens rendered with sample data. It follows the journey from a first entry through projects and memories to a weekly review and a breathing exercise.
 
-Das Video liegt lokal unter `video/out/demo.mp4` vor (Full HD, englischer Sprechertext). Der Ausgabeordner ist von Git ausgeschlossen und deshalb in einem frischen Checkout nicht enthalten. Hinweise zum Erstellen des Videos stehen in [video/README.md](video/README.md).
+The video is available locally at `video/out/demo.mp4` (Full HD, English narration). The output directory is excluded from Git, so it is not included in a fresh checkout. See [video/README.md](video/README.md) for instructions on generating the video.
 
-## Funktionen
+## Features
 
-| Bereich | Was die App bietet |
+| Area | What the app offers |
 | --- | --- |
-| **Erinnerungen und stolze Momente** | Erlebnisse mit Text, Datum und optionalem Foto speichern, bearbeiten und als Favoriten markieren. Die Sammlung lässt sich nach Kategorien und Favoriten filtern. |
-| **Persönliche Projekte** | Ziele mit Beschreibung, Zeitraum, Kategorie und Priorität anlegen. Fortschritte im Logbuch mit Text und Bildern dokumentieren und Projekte als abgeschlossen markieren. |
-| **Rückblick auf der Startseite** | Zufällig ausgewählte Erinnerungen und stolze Momente wiederentdecken. Ein „Project Spotlight“ zeigt Logbucheinträge eines ausgewählten Projekts. |
-| **Wochenrückblick** | Erinnerungen, stolze Momente und Projektaktivitäten einer Woche gemeinsam betrachten und zwischen Wochen wechseln. |
-| **Atemübungen** | Einer animierten Atemführung folgen, die Dauer zwischen 10 Sekunden und 30 Minuten wählen und bei Bedarf Hintergrundmusik einschalten. |
-| **Routine und Gestaltung** | Aktivitätsserien verfolgen und die Akzentfarbe anpassen. Auf Android und iOS sind lokale Erinnerungen für die Serie und den Wochenrückblick vorgesehen. |
+| **Memories and proud moments** | Save and edit experiences with text, a date, and an optional photo. Mark favorites and filter your collection by category or favorites. |
+| **Personal projects** | Create goals with a description, time frame, category, and priority. Document progress in a logbook with text and photos, and mark projects as completed. |
+| **Home screen rewind** | Rediscover randomly selected memories and proud moments. A Project Spotlight presents logbook entries from a selected project. |
+| **Weekly review** | Look back at memories, proud moments, and project activity together, and browse previous weeks. |
+| **Breathing exercises** | Follow an animated breathing guide, choose a duration from 10 seconds to 30 minutes, and optionally add background music. |
+| **Routine and appearance** | Track activity streaks and customize the accent color. Android and iOS support local streak and weekly review reminders. |
 
-## Lokal starten
+## Run locally
 
-Voraussetzungen sind ein Flutter SDK mit Dart **3.12 oder kompatibler 3.x-Version** gemäß [pubspec.yaml](pubspec.yaml) sowie eine eingerichtete Zielplattform, beispielsweise ein Android-Emulator oder iOS-Simulator. Für iOS wird macOS mit Xcode benötigt.
+You need a Flutter SDK with Dart **3.12 or a compatible later 3.x version**, as specified in [pubspec.yaml](pubspec.yaml), and a configured target platform, such as an Android emulator or iOS simulator. Building for iOS requires macOS and Xcode.
 
-Im Projektverzeichnis:
+From the project directory:
 
 ```sh
 flutter pub get
@@ -35,64 +35,64 @@ flutter devices
 flutter run
 ```
 
-Bei mehreren verfügbaren Geräten lässt sich das Ziel mit `flutter run -d <device-id>` auswählen.
+If multiple devices are available, select one with `flutter run -d <device-id>`.
 
-Beim ersten Öffnen an einem neuen Tag startet zunächst eine kurze Atemübung von 12 Sekunden. Nach deren Abschluss gelangt man zur Startseite.
+The first time you open the app each day, it starts with a short, 12-second breathing exercise. Complete it to reach the home screen.
 
-## Demo-Version mit Beispieldaten aktivieren
+## Enable the demo version with sample data
 
-**In [lib/demodata.dart](lib/demodata.dart) muss die Anweisung in Zeile 22 auskommentiert werden**, damit die App die vorbereiteten Beispieldaten lädt:
+**Comment out the statement on line 22 of [lib/demodata.dart](lib/demodata.dart)** to enable the prepared sample data:
 
 ```dart
-// Vorher (Zeile 22): Beispieldaten deaktiviert
+// Before (line 22): sample data disabled
 isFirstLaunch = false;
 
-// Nachher: Beispieldaten aktiviert
+// After: sample data enabled
 // isFirstLaunch = false;
 ```
 
-Anschließend die App vollständig neu starten oder einen **Hot Restart** ausführen. Ein Hot Reload allein führt die Initialisierung nicht erneut aus.
+Then restart the app completely or perform a **Hot Restart**. Hot Reload alone does not run the initialization again.
 
-Beim nächsten Laden der Startseite werden Beispielerinnerungen, stolze Momente und Fotos angelegt. Ist die Projektliste noch leer, kommen die Projekte **„Half-Marathon Training“** und **„Learning Guitar“** mit Logbucheinträgen hinzu.
+The next time the home screen loads, the app adds sample memories, proud moments, and photos. If the project list is empty, it also adds **“Half-Marathon Training”** and **“Learning Guitar”**, including logbook entries.
 
-Die Initialisierung erfolgt einmalig und wird über den lokal gespeicherten Schlüssel `firstLaunch_rewind` gesteuert. Wurden die Beispieldaten bereits geladen, werden sie beim Neustart nicht erneut angelegt. Für eine erneute Initialisierung kann dieser Schlüssel in einer Entwicklungsumgebung entfernt bzw. auf `true` gesetzt werden. Das Auskommentieren der Zeile löscht keine vorhandenen Einträge; bereits angelegte Demodaten bleiben auch nach dem erneuten Aktivieren der Anweisung erhalten.
+This initialization runs once and is controlled by the locally stored `firstLaunch_rewind` key. Once sample data has been loaded, restarting the app does not add it again. To run initialization again in a development environment, remove this key or set it to `true`. Commenting out the line does not delete existing entries; previously created demo data also remains if you later restore the statement.
 
-## Technik und Speicherung
+## Technology and storage
 
-Die App verwendet **Flutter und Dart** mit Material-Komponenten. Ein separates Backend, Benutzerkonto oder API-Schlüssel ist für die App nicht erforderlich.
+The app uses **Flutter and Dart** with Material components. No separate backend, user account, or API key is required to run the app.
 
-- **`shared_preferences`** speichert Einträge, Projekte, Einstellungen und Aktivitätsserien lokal.
-- **`image_picker` und `path_provider`** unterstützen die Bildauswahl und lokale Bildablage. Je nach Eintrag werden Bilder als lokale Dateien oder Base64-Daten gespeichert.
-- **`audioplayers`** spielt die mitgelieferten Audiotracks ab.
-- **`flutter_local_notifications`, `timezone` und `flutter_timezone`** ermöglichen lokale Benachrichtigungen auf Android und iOS, sofern die erforderlichen Berechtigungen erteilt wurden.
+- **`shared_preferences`** stores entries, projects, settings, and activity streaks locally.
+- **`image_picker` and `path_provider`** handle image selection and local image storage. Depending on the entry, images are stored as local files or Base64 data.
+- **`audioplayers`** plays the bundled audio tracks.
+- **`flutter_local_notifications`, `timezone`, and `flutter_timezone`** provide local notifications on Android and iOS when the required permissions are granted.
 
-Eine Synchronisierung zwischen Geräten ist derzeit nicht implementiert.
+Cross-device synchronization is not currently implemented.
 
-## Orientierung im Code
+## Code overview
 
-| Datei / Verzeichnis | Aufgabe |
+| File / directory | Purpose |
 | --- | --- |
-| `lib/main.dart` | App-Einstieg, Startseite und tägliche Atemübung |
-| `lib/proudy.dart`, `lib/mymemories.dart`, `lib/event.dart` | Einträge erfassen, verwalten und anzeigen |
-| `lib/project.dart` | Projekte und Logbücher |
-| `lib/remind.dart` | Zufällige Rückblicke und Project Spotlight |
-| `lib/weekly_report.dart`, `lib/weekly_report_data.dart` | Wochenrückblick und Auswertung |
-| `lib/breath.dart`, `lib/breathing_setup.dart`, `lib/breathing_music.dart` | Atemführung, Dauer und Musik |
-| `lib/streak.dart`, `lib/streak_reminder.dart` | Aktivitätsserien und Benachrichtigungen |
-| `lib/localdb.dart`, `lib/stored_image.dart` | Lokale Daten- und Bildspeicherung |
-| `lib/demodata.dart` | Beispieldaten für die Demo-Version |
-| `lib/app_theme.dart`, `lib/appearance.dart` | Gestaltung und Akzentfarben |
-| `assets/` | Audio und Beispielbilder |
-| `test/` | Tests für Layout, Speicherung, Rückblicke, Atemübungen und Serien |
-| `video/` | Remotion-Projekt, Sprechertext und Demo-Video |
+| `lib/main.dart` | App entry point, home screen, and daily breathing exercise |
+| `lib/proudy.dart`, `lib/mymemories.dart`, `lib/event.dart` | Create, manage, and display entries |
+| `lib/project.dart` | Projects and logbooks |
+| `lib/remind.dart` | Random memory rewind and Project Spotlight |
+| `lib/weekly_report.dart`, `lib/weekly_report_data.dart` | Weekly review and activity summaries |
+| `lib/breath.dart`, `lib/breathing_setup.dart`, `lib/breathing_music.dart` | Breathing guidance, duration, and music |
+| `lib/streak.dart`, `lib/streak_reminder.dart` | Activity streaks and notifications |
+| `lib/localdb.dart`, `lib/stored_image.dart` | Local data and image storage |
+| `lib/demodata.dart` | Sample data for the demo version |
+| `lib/app_theme.dart`, `lib/appearance.dart` | Visual design and accent colors |
+| `assets/` | Audio tracks and sample images |
+| `test/` | Tests for layouts, storage, reviews, breathing exercises, and streaks |
+| `video/` | Remotion project, narration, and demo video |
 
-## Entwicklung
+## Development
 
-Die vorhandenen Flutter-Tests und die statische Analyse lassen sich im Projektverzeichnis ausführen:
+Run the existing Flutter tests and static analysis from the project directory:
 
 ```sh
 flutter test
 flutter analyze
 ```
 
-Das Demo-Video wird separat mit Remotion erstellt. Die zugehörigen Befehle und Voraussetzungen sind in [video/README.md](video/README.md) dokumentiert.
+The demo video is built separately with Remotion. Commands and prerequisites are documented in [video/README.md](video/README.md).
