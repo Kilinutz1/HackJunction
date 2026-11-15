@@ -354,13 +354,22 @@ class _ReportPhoto extends StatelessWidget {
     final image = bytes != null
         ? Image.memory(
             bytes!,
-            fit: BoxFit.cover,
+            fit: BoxFit.contain,
             errorBuilder: (_, _, _) => fallback(),
           )
-        : StoredImage(source: source!, errorBuilder: (_, _, _) => fallback());
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(12),
-      child: SizedBox(height: 180, width: double.infinity, child: image),
+        : StoredImage(
+            source: source!,
+            fit: BoxFit.contain,
+            errorBuilder: (_, _, _) => fallback(),
+          );
+    return Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxHeight: 420),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(12),
+          child: image,
+        ),
+      ),
     );
   }
 }
