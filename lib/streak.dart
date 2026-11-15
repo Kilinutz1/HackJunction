@@ -211,7 +211,7 @@ class _StreakBadgeState extends State<StreakBadge> with WidgetsBindingObserver {
                   ),
                   const SizedBox(height: 24),
                   const Text(
-                    'Create a Memory or Proud Moment, start a new project, or add a project logbook entry. Each calendar day counts once. Editing existing content does not count.',
+                    'Create a Memory or Proud Moment, start a new project, add a project logbook entry, or complete a breathing exercise. Each calendar day counts once. Editing existing content or leaving a breathing exercise early does not count.',
                   ),
                 ],
               );
